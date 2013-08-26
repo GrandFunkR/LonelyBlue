@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/boxheadonline"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry exported="true" kind="lib" path="/boxheadonline/libs/gdx.jar" sourcepath="/boxheadonline/libs/gdx-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/gdx-backend-android.jar" sourcepath="libs/gdx-backend-android-sources.jar"/>
+	<classpathentry kind="lib" path="libs/gdx-freetype.jar"/>
+	<classpathentry kind="lib" path="/boxheadonline/libs/gdx-freetype-natives.jar"/>
+	<classpathentry kind="lib" path="libs/java_websocket.jar"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
+	<classpathentry kind="lib" path="libs/gamooga.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Sameid/Dropbox/adt-bundle-windows-x86_64-20130729/sdk/platforms/android-18/android.jar"/>
+	<classpathentry kind="output" path="bin/classes"/>
+</classpath>
