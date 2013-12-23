@@ -101,12 +101,14 @@ public class Joypad {
 		}
 	}
 
-	public double calculateDirection() {
+	public double calculateDirection(boolean pretty) {
 		double down, top;
 		top = (pad.x + pad.radius) - (knob.x + knob.radius);
 		down = (pad.y + pad.radius) - (knob.y + knob.radius);
 		Double angle = 0.0;
 		angle = (Math.atan(top / down));
+		
+		if(pretty) return angle;
 
 		
 		if (pad.x + pad.radius < knob.x + knob.radius ) {

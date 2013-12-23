@@ -12,11 +12,20 @@ import java.util.Random;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.TextInputListener;
+import com.badlogic.gdx.Net.HttpMethods;
+import com.badlogic.gdx.Net.HttpRequest;
+import com.badlogic.gdx.Net.HttpResponse;
+import com.badlogic.gdx.Net.HttpResponseListener;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector3;
@@ -31,28 +40,43 @@ import com.roadhouse.ui.InputHandler;
 
 public class Boxhead implements ApplicationListener {
 
+	
+	
+	public final static int DOWN_LEFT = 0;
+	public final static int DOWN_RIGHT = 1;
+	public final static int DOWN = 2;
+	public final static int LEFT = 3;
+	public final static int UP_LEFT = 4;
+	public final static int UP_RIGHT = 5;
+	public final static int UP = 6;
+	public final static int RIGHT = 7;
+	
+
+	public static Preferences prefs;
+	public static boolean played;
+	
+	
+
+	
 	OrthographicCamera camera;
 	SpriteBatch batch;
 
 	BitmapFont font ;
 	BitmapFont huge ;
+	BitmapFont _font;
 	FreeTypeFontGenerator generator;
 
 	Character character;
 	Joypad mover;
 	Joypad shooter;
 	Texture randimg;
-	Texture patternFill;
+	Texture bg;
 
 
 	ArrayList<Bullet> bullets;
 	public static ArrayList<Enemy> enemies;
 	ArrayList <ScoreUp> scoreUps;
-	
-	public static ArrayList<Friendly> roamingFriendlies;
-	public static ArrayList<Friendly> attachedFriendlies;
-
-	ArrayList<Circle> pattern;
+	ArrayList <Explosion> explosions;
 	
 	public final static int SCREEN_WIDTH = 1280;
 	public final static int SCREEN_HEIGHT = 720;
@@ -84,6 +108,8 @@ public class Boxhead implements ApplicationListener {
 
 	Button createRoom;
 	Button enterRoom;
+	
+	Music music;
 
 	double speedX, speedY;
 	int level;
@@ -97,6 +123,7 @@ public class Boxhead implements ApplicationListener {
 	float cex, cey;
 	String healthString;
 
+	
 	int myID;
 	public static enum platformCode {DESKTOP, ANDROID, HTML5};
 
@@ -110,6 +137,41 @@ public class Boxhead implements ApplicationListener {
 	@Override
 	public void create() {
 		
+		 HttpRequest request = new HttpRequest(HttpMethods.POST);
+         request.setUrl("http://localhost:8080/LonelyBlue-LeaderBoard/score/allScores");
+         //request.setContent("var1=true&var2=1234");
+         Gdx.net.sendHttpRequest(request, new HttpResponseListener() {
+                 @Override
+                 public void handleHttpResponse(HttpResponse httpResponse) {
+                         Gdx.app.log("Status code ", "" + httpResponse.getStatus().getStatusCode());
+                         Gdx.app.log("Result ", httpResponse.getResultAsString());
+
+                         
+                 }
+                 @Override
+                 public void failed(Throwable t) {
+                         Gdx.app.log("Failed ", t.getMessage());
+                 }
+         });
+		
+		prefs = Gdx.app.getPreferences("myprefs");
+		played = !prefs.get().isEmpty();
+		
+		if (!played){
+			LBInputListener listener = new LBInputListener(prefs);
+			Gdx.input.setOnscreenKeyboardVisible(true);
+			Gdx.input.getTextInput(listener, "Display Name:", "");
+			
+			prefs.putInteger("highscore", 0);
+			prefs.flush();
+		}
+		
+		music = Gdx.audio.newMusic(Gdx.files.internal("testing/track1.mp3"));
+		music.setVolume(0.5f);
+		music.setLooping(true);
+		music.play(); 
+		  
+		Texture.setEnforcePotImages(false);
 		
 		camera = new OrthographicCamera();
 		camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -121,31 +183,22 @@ public class Boxhead implements ApplicationListener {
 		mover = new Joypad(true);
 		shooter = new Joypad(false);
 		randimg = new Texture(Gdx.files.internal("testing/char.png"));
-		patternFill = new Texture(Gdx.files.internal("testing/fill.png"));
+		bg = new Texture(Gdx.files.internal("testing/bg.Jpg"));
 		bullets = new ArrayList<Bullet>();
 		enemies = new ArrayList<Enemy>();
 		scoreUps = new ArrayList<ScoreUp>();
-		
-		float startX = 1280/2;
-		float startY = 720/2;
-		//pattern poc
-		// o   o
-		//   o 
-		// o   o
-		pattern = new ArrayList<Circle>();
-		pattern.add(new Circle(startX+64, startY+64, 64));
-		pattern.add(new Circle(startX+64, startY-64, 64));
-		pattern.add(new Circle(startX-64, startY+64, 64));
-		pattern.add(new Circle(startX-64, startY-64, 64));
+		explosions = new ArrayList<Explosion>();
 		
 		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/pixel_maz.ttf"));
-		font = generator.generateFont(96, FONT_CHARACTERS, true);
-		huge = generator.generateFont(300, FONT_CHARACTERS, true);
+		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/big_noodle_titling.ttf"));	
+		font = _generator.generateFont(70, FONT_CHARACTERS, true);
+		huge = _generator.generateFont(300, FONT_CHARACTERS, true);
+		_font = _generator.generateFont(60, FONT_CHARACTERS, true);
 		generator.dispose();
 
 		healthString = "";
 
-		for (int i = 0 ; i < character.getHealth() /16; i++){
+		for (int i = 0 ; i < character.getHealth() /13; i++){
 			healthString +="|";
 		}
 
@@ -176,14 +229,19 @@ public class Boxhead implements ApplicationListener {
 	@Override
 	public void render() {
 
+		
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
+	                                         // #14
+        
+		
 		// //////
 		// Start drawing objects to batch<SpriteBatch>
-
+		batch.draw(bg, 0,0);
+		
 		if (game){
 			// If currently touching screen, then draw respective Joypad
 			if (currentTouchOne) {
@@ -208,30 +266,15 @@ public class Boxhead implements ApplicationListener {
 
 			}
 
-			for(int i = 0; i < pattern.size(); i++){
-				Circle c = pattern.get(i);
-				batch.draw(patternFill, 
-						c.x - c.radius,
-						c.y - c.radius);
-			}
 			
 			for (int i = 0; i < enemies.size(); i++) {
 				Enemy current = enemies.get(i);
 				batch.draw(Enemy.getEneImg(), current.getEnemy().x - current.getEnemy().radius,
 						current.getEnemy().y - current.getEnemy().radius);
+			
 			}
 
-			for (int i = 0; i < roamingFriendlies.size(); i++) {
-				Friendly current = roamingFriendlies.get(i);
-				batch.draw(Friendly.getFriendImg(), current.getfriendly().x - current.getfriendly().radius,
-						current.getfriendly().y - current.getfriendly().radius);
-			}	
-			
-			for (int i = 0; i < attachedFriendlies.size(); i++) {
-				Friendly current = attachedFriendlies.get(i);
-				batch.draw(Friendly.getFriendImg(), current.getfriendly().x - current.getfriendly().radius,
-						current.getfriendly().y - current.getfriendly().radius);
-			}	
+
 			
 			// draw possible bullets that are shot
 			for (int i = 0; i < bullets.size(); i++) {
@@ -241,15 +284,22 @@ public class Boxhead implements ApplicationListener {
 
 			}
 
+			
+			
 			for (int i = 0 ; i < scoreUps.size() ; i++){
 				ScoreUp current = scoreUps.get(i);
 				if (current.incrementOrRemove()){
 					scoreUps.remove(i);
 				}
-				current.y--;
-
+				current.y--;	  
+		        
 				font.draw(batch, "+" + current.currentScore, current.x, current.y);
-
+			}
+			
+			for (int i = 0; i < explosions.size() ; i++){
+				Explosion current = explosions.get(i);
+				if(!current.isDone())current.draw(batch);
+				else explosions.remove(i);
 			}
 
 
@@ -263,18 +313,22 @@ public class Boxhead implements ApplicationListener {
 				huge.draw(batch, "Lonely", 40, 40);
 
 				huge.setColor(0, 0, 1, 1);
-				huge.draw(batch, "Blue.", 40, 170);
+				huge.draw(batch, "Blue.", 50, 200);
 				huge.setColor(1, 1, 1, 1);
 
-				solo.drawButton(batch, 140);
-				online.drawButton(batch, 90);
-				options.drawButton(batch, 60);
+				_font.draw(batch, prefs.getString("name"), 40, 600);
+				
+				_font.draw(batch, "Highscore: "+ Integer.toString(prefs.getInteger("highscore")), 40, 650);
+
+				solo.drawButton(batch, 0);
+				online.drawButton(batch, 0);
+				options.drawButton(batch, 0);
 
 			}
 			else if (gameOver){
 				huge.draw(batch, "GAME OVER", 40, 40);
-				replay.drawButton(batch, 90);
-				quitToMain.drawButton(batch, 130);
+				replay.drawButton(batch, 0);
+				quitToMain.drawButton(batch, 0);
 
 			}
 			else if (onlineMenu){
@@ -338,6 +392,9 @@ public class Boxhead implements ApplicationListener {
 						mover.initialTouch(touchLeft.x, touchLeft.y);
 						currentTouchOne = true;
 					}
+					
+
+					
 					// adjust magnitude of knob with pad in mover<Joypad>
 					mover.adjustMagnitude(touchLeft.x, touchLeft.y);
 					// move character according to mover<Joypad> x/y differences
@@ -366,7 +423,7 @@ public class Boxhead implements ApplicationListener {
 
 					shooter.adjustMagnitude(touchRight.x, touchRight.y);
 
-					Double direction = shooter.calculateDirection();
+					Double direction = shooter.calculateDirection(false);
 					speedX = 30 * Math.cos(direction);
 					speedY = 30 * Math.sin(direction);
 
@@ -427,103 +484,6 @@ public class Boxhead implements ApplicationListener {
 					isScheduled = false;
 				}
 
-				for (int i = 0 ; i < roamingFriendlies.size() ; i++){
-					Friendly r = roamingFriendlies.get(i);
-					r.move(character.getControl());		
-					for (int j = 0 ; j < attachedFriendlies.size() ; j++){
-						Friendly a = attachedFriendlies.get(j);	
-						if (a.isColliding(r, 120)){
-							r.attachTo(a);
-//							//needs to be based on closest angle
-//							r.setAttachedAt(Friendly.NORTH);
-							if(r.getControl().x > a.getControl().x){
-								if(r.getControl().y > a.getControl().y){
-									r.setAttachedAt(Friendly.SOUTH_EAST);
-								}
-								else {
-									r.setAttachedAt(Friendly.NORTH_EAST);
-								}
-							}
-							else {
-								if(r.getControl().y > a.getControl().y){
-									r.setAttachedAt(Friendly.SOUTH_WEST);
-								}
-								else {
-									r.setAttachedAt(Friendly.NORTH_WEST);
-								}
-							}
-							attachedFriendlies.add(r);
-							roamingFriendlies.remove(i);
-							break;
-						}
-						a = null;
-					}
-					
-					if (r.isColliding(character, 120)){
-						r.attachTo(character);
-						if(r.getControl().x > character.getControl().x){
-							if(r.getControl().y > character.getControl().y){
-								r.setAttachedAt(Friendly.SOUTH_EAST);
-							}
-							else {
-								r.setAttachedAt(Friendly.NORTH_EAST);
-							}
-						}
-						else {
-							if(r.getControl().y > character.getControl().y){
-								r.setAttachedAt(Friendly.SOUTH_WEST);
-							}
-							else {
-								r.setAttachedAt(Friendly.NORTH_WEST);
-							}
-						}
-						attachedFriendlies.add(r);
-						//TODO: size check before remove
-						roamingFriendlies.remove(i);
-					}
-					
-					r = null;
-				}
-
-				int matchBound  = 25;
-				for (int i = 0; i < attachedFriendlies.size() ; i++){
-					Friendly a = attachedFriendlies.get(i);
-					if (a.getAttachedAt() == Friendly.NORTH_EAST){
-						a.getControl().x = a.getAttachedTo().getControl().x + 64;
-						a.getControl().y = a.getAttachedTo().getControl().y - 64;
-					}
-					else if(a.getAttachedAt() == Friendly.NORTH_WEST){
-						a.getControl().x = a.getAttachedTo().getControl().x - 64;
-						a.getControl().y = a.getAttachedTo().getControl().y - 64;	
-					}
-					else if (a.getAttachedAt() == Friendly.SOUTH_EAST){
-						a.getControl().x = a.getAttachedTo().getControl().x + 64;
-						a.getControl().y = a.getAttachedTo().getControl().y + 64;
-					}
-					else if (a.getAttachedAt() == Friendly.SOUTH_WEST){
-						a.getControl().x = a.getAttachedTo().getControl().x - 64;
-						a.getControl().y = a.getAttachedTo().getControl().y + 64;
-					}
-					int matchCount = 0;
-					
-					for (int j = 0; j < pattern.size(); j++){
-						Circle c = pattern.get(j);
-//						System.out.println(matchCount);
-						if (matchCount == pattern.size()-1){
-							System.out.println("full match");
-						}
-						if (a.getControl().x >=  c.x - matchBound && a.getControl().x <= c.x + matchBound){
-							if (a.getControl().y >=  c.y - matchBound && a.getControl().y <= c.y + matchBound){
-//								System.out.println("match");
-								matchCount++;
-								System.out.println(matchCount);
-							}	
-						}
-					}
-					
-					
-				}
-				
 				try {
 					for (int i = 0; i < enemies.size(); i++) {
 
@@ -531,11 +491,11 @@ public class Boxhead implements ApplicationListener {
 
 							//Timer.schedule(new DecreaseHealth (character), 0, 1, 1);
 							//remove
-//							character.decreaseHealth();
-//							healthString = "";
-//							for (int k = 0; k < character.getHealth() /16; k++){
-//								healthString+="|";
-//							}
+							//character.decreaseHealth();
+							healthString = "";
+							for (int k = 0; k < character.getHealth() /13; k++){
+								healthString+="|";
+							}
 						}
 						else {
 							enemies.get(i).move(character.getControl());
@@ -557,7 +517,8 @@ public class Boxhead implements ApplicationListener {
 							cex = enemies.get(i).getEnemy().x;
 							cey = enemies.get(i).getEnemy().y;
 							scoreUps.add(new ScoreUp(currentScore,cex,cey));
-
+							explosions.add(new Explosion(cex,cey));
+							
 							enemies.remove(i);
 							kills++;
 
@@ -633,7 +594,10 @@ public class Boxhead implements ApplicationListener {
 
 				}
 				else if (gameOver){
-
+					if (prefs.getInteger("highscore") < score){
+						prefs.putInteger("highscore", score);
+						prefs.flush();
+					}
 					if (replay.isReleased()){
 						replay.setPressed(false);
 						gameOver = false;
@@ -725,10 +689,6 @@ public class Boxhead implements ApplicationListener {
 		bullets = new ArrayList<Bullet>();
 		enemies = new ArrayList<Enemy>();
 		
-
-		roamingFriendlies = new ArrayList<Friendly>();
-		attachedFriendlies = new ArrayList<Friendly>();
-
 		
 		character.resetCharacter();
 		healthString = "";
@@ -736,11 +696,9 @@ public class Boxhead implements ApplicationListener {
 		Timer t = Timer.instance;
 		t.clear();
 		t = null;
-		for (int i = 0 ; i < character.getHealth() /16; i++){
+		for (int i = 0 ; i < character.getHealth() /13; i++){
 			healthString +="|";
 		}
-
-		Timer.schedule(new SpawnFriendlies(level), 0, 2, 20);
 
 		Timer.schedule(new SpawnEnemies(level), 0, 2, 20);
 	}

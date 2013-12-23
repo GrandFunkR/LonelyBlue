@@ -20,8 +20,8 @@ public class Button {
 	
 	static Texture regImg = new Texture(Gdx.files.internal("testing/button.png"));
 	static Texture touchImg = new Texture(Gdx.files.internal("testing/buttonTouch.png"));
-	static FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/pixel_maz.ttf"));
-	static BitmapFont font = generator.generateFont(192, Boxhead.FONT_CHARACTERS, true);
+	static FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/big_noodle_titling.ttf"));
+	static BitmapFont font = generator.generateFont(96, Boxhead.FONT_CHARACTERS, true);
 	
 	public Button (float x, float y, String text){
 		this.touch = new Rectangle();
@@ -51,10 +51,10 @@ public class Button {
 		if (this.isPressed()){
 			font.setColor(Color.BLACK);
 			batch.draw(touchImg, touch.x, touch.y);	
-			}
+		}
 		else {
 			font.setColor(Color.WHITE);
-			batch.draw(regImg, touch.x, touch.y);
+			//batch.draw(regImg, touch.x, touch.y);
 		}
 		font.draw(batch, text, touch.x + x, touch.y + 30);
 	}

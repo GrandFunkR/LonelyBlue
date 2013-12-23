@@ -1,0 +1,21 @@
+package com.roadhouse.boxheadonline;
+
+import com.badlogic.gdx.Gdx;
+
+public class Explosion {
+	
+	protected float x,y,stateTime;
+	
+	public Explosion(float x,float y){
+		this.x = x;
+		this.y = y;
+		this.stateTime = 0f;
+	}
+
+	public boolean draw (SpriteBatch batch){
+		stateTime += Gdx.graphics.getDeltaTime();                       // #15
+        currentFrame = explodeAnimation[0].getKeyFrame(stateTime, true);      // #16
+        batch.draw(currentFrame, current.x, current.y); 
+	}
+
+}

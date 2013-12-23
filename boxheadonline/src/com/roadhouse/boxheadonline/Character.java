@@ -57,7 +57,22 @@ public class Character extends Collidable implements Serializable{
 		} else if (character.y + character.radius * 2 > Boxhead.SCREEN_HEIGHT) {
 			character.y = (float) (Boxhead.SCREEN_HEIGHT - 129);
 		}
-
+		
+	}
+	
+	
+	
+	public int getDirection(double a){
+		if (a >= -22.5 && a < 22.5) return Boxhead.RIGHT;
+		else if (a >= 22.5 && a < 67.5) return Boxhead.DOWN_RIGHT;
+		else if (a >= 67.5 && a < 112.5) return Boxhead.DOWN;
+		else if (a >= 112.5 && a < 157.5) return Boxhead.DOWN_LEFT;
+		else if (a >= 157.5 || a < -157.5) return Boxhead.LEFT;
+		else if (a >= -157.5 && a < -112.5) return Boxhead.UP_LEFT;
+		else if (a >= -112.5 && a < -67.5) return Boxhead.UP;
+		else if (a >= -67.5 && a < -22.5) return Boxhead.UP_RIGHT;
+		
+		return 0;
 	}
 
 	@Override
