@@ -1,6 +1,0 @@
-INDEX VERSION 1.122+/Users/Sameid/Dropbox/LonelyBlue/.metadata/.plugins/org.eclipse.wst.jsdt.core/indexes
-2473337305.index
-3505909907.index
-3014427965.index
-4070989046.index
-967356313.index
