@@ -11,6 +11,6 @@ public class Main {
 		cfg.width = 1280;
 		cfg.height = 720;
 		
-		new LwjglApplication(new Boxhead(Boxhead.platformCode.DESKTOP), cfg);
+		new LwjglApplication(new Boxhead(Boxhead.platformCode.DESKTOP, null), cfg);
 	}
 }

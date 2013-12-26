@@ -12,7 +12,7 @@ public class Enemy extends Collidable {
 	private double speedX, speedY;
 
 	final static int HEALTH_MAX = 15;
-	final static int SPEED = 5;
+	final static int SPEED = 10;
 	private int health;
 	private double direction;
 

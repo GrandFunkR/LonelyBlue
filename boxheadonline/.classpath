@@ -8,5 +8,9 @@
 	<classpathentry kind="lib" path="libs/java_websocket.jar"/>
 	<classpathentry kind="lib" path="libs/gamooga.jar"/>
 	<classpathentry kind="lib" path="/Users/Sameid/Downloads/adt-bundle-mac-x86_64-20131030/sdk/platforms/android-19/android.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/BaseGameUtils"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/google-play-services_lib"/>
+	<classpathentry kind="lib" path="/google-play-services_lib/libs/google-play-services.jar"/>
+	<classpathentry kind="lib" path="/BaseGameUtils/libs/android-support-v4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

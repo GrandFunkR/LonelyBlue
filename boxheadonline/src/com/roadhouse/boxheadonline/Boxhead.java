@@ -1,47 +1,30 @@
-//In the name of Allah, the Most Merciful, The Most Merciful
-
+//In the name of Allah, the Most Merciful, The Ever Merciful
 
 package com.roadhouse.boxheadonline;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Random;
+
 
 
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.TextInputListener;
-import com.badlogic.gdx.Net.HttpMethods;
-import com.badlogic.gdx.Net.HttpRequest;
-import com.badlogic.gdx.Net.HttpResponse;
-import com.badlogic.gdx.Net.HttpResponseListener;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
 import com.badlogic.gdx.utils.Timer;
-import com.gamooga.client.ConnectCallback;
-import com.gamooga.client.GamoogaClient;
-import com.gamooga.client.MessageCallback;
 import com.roadhouse.ui.InputHandler;
 
 
 public class Boxhead implements ApplicationListener {
 
-	
-	
 	public final static int DOWN_LEFT = 0;
 	public final static int DOWN_RIGHT = 1;
 	public final static int DOWN = 2;
@@ -51,12 +34,11 @@ public class Boxhead implements ApplicationListener {
 	public final static int UP = 6;
 	public final static int RIGHT = 7;
 	
-
+	public final static int ENEMIES_PER_LEVEL = 100;
+	public final static float ENEMY_SPAWN_DELAY = 0.35f;
+	
 	public static Preferences prefs;
 	public static boolean played;
-	
-	
-
 	
 	OrthographicCamera camera;
 	SpriteBatch batch;
@@ -71,7 +53,6 @@ public class Boxhead implements ApplicationListener {
 	Joypad shooter;
 	Texture randimg;
 	Texture bg;
-
 
 	ArrayList<Bullet> bullets;
 	public static ArrayList<Enemy> enemies;
@@ -96,7 +77,7 @@ public class Boxhead implements ApplicationListener {
 	boolean hostWaitingRoom = false;
 	boolean createOrJoinRoom = false;
 
-	boolean network = false;
+	boolean network = true;
 	boolean host = false;
 
 	Button replay;
@@ -104,7 +85,7 @@ public class Boxhead implements ApplicationListener {
 
 	Button solo;
 	Button online;
-	Button options;
+	//Button options;
 
 	Button createRoom;
 	Button enterRoom;
@@ -117,42 +98,21 @@ public class Boxhead implements ApplicationListener {
 	int kills;
 	int deathLimit;
 	
-	private GamoogaClient gc;
-
 	int currentScore;
 	float cex, cey;
 	String healthString;
 
-	
 	int myID;
 	public static enum platformCode {DESKTOP, ANDROID, HTML5};
 
 	public Boxhead(platformCode pC)
 	{
 		super();
-
 	}
 
-
 	@Override
-	public void create() {
-		
-		 HttpRequest request = new HttpRequest(HttpMethods.POST);
-         request.setUrl("http://localhost:8080/LonelyBlue-LeaderBoard/score/allScores");
-         //request.setContent("var1=true&var2=1234");
-         Gdx.net.sendHttpRequest(request, new HttpResponseListener() {
-                 @Override
-                 public void handleHttpResponse(HttpResponse httpResponse) {
-                         Gdx.app.log("Status code ", "" + httpResponse.getStatus().getStatusCode());
-                         Gdx.app.log("Result ", httpResponse.getResultAsString());
-
-                         
-                 }
-                 @Override
-                 public void failed(Throwable t) {
-                         Gdx.app.log("Failed ", t.getMessage());
-                 }
-         });
+	public void create() {		
+		printf("Lonely Blue. v0.1");
 		
 		prefs = Gdx.app.getPreferences("myprefs");
 		played = !prefs.get().isEmpty();
@@ -202,20 +162,17 @@ public class Boxhead implements ApplicationListener {
 			healthString +="|";
 		}
 
-		replay = new Button (700, 300, "REPLAY");
-		quitToMain = new Button (700, 500, "MENU");
+		replay = new Button (0, 300, "REPLAY");
+		quitToMain = new Button (0, 500, "MENU");
 
-		solo = new Button (700, 100, "SOLO");
-		online = new Button (700, 300, "ONLINE");
-		options = new Button (700, 500, "OPTIONS");
-
+		solo = new Button (0, 350, "PLAY!");
+		
+		//online = new Button (700, 300, "ONLINE (SOON!)");
+		//options = new Button (700, 500, "OPTIONS (COMING SOON)");
+		
 		createRoom = new Button (700, 100, "CREATE ROOM");
 		enterRoom = new Button (700, 300, "JOIN ROOM");
-
 		deathLimit = 20;
-		
-	
-		
 	}
 
 	@Override
@@ -225,23 +182,17 @@ public class Boxhead implements ApplicationListener {
 		shooter.dispose();
 		mover.dispose();
 	}
+	boolean update = false;
 
 	@Override
 	public void render() {
-
 		
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
-	                                         // #14
-        
-		
-		// //////
-		// Start drawing objects to batch<SpriteBatch>
 		batch.draw(bg, 0,0);
-		
 		if (game){
 			// If currently touching screen, then draw respective Joypad
 			if (currentTouchOne) {
@@ -251,40 +202,23 @@ public class Boxhead implements ApplicationListener {
 				shooter.drawJoypad(batch);
 			}
 
-
 			// Draw character on screen
 			batch.draw(randimg, 
 					character.getControl().x - character.getControl().radius,
 					character.getControl().y - character.getControl().radius);
-
-
-			if (network){
-				// Draw character on screen
-				batch.draw(randimg, 
-						networkCharacter.getControl().x - networkCharacter.getControl().radius,
-						networkCharacter.getControl().y - networkCharacter.getControl().radius);
-
-			}
-
 			
 			for (int i = 0; i < enemies.size(); i++) {
 				Enemy current = enemies.get(i);
 				batch.draw(Enemy.getEneImg(), current.getEnemy().x - current.getEnemy().radius,
 						current.getEnemy().y - current.getEnemy().radius);
-			
 			}
-
-
 			
 			// draw possible bullets that are shot
 			for (int i = 0; i < bullets.size(); i++) {
 				Bullet current = bullets.get(i);
 				batch.draw(Bullet.getImage(), current.getControl().x,
 						current.getControl().y);
-
 			}
-
-			
 			
 			for (int i = 0 ; i < scoreUps.size() ; i++){
 				ScoreUp current = scoreUps.get(i);
@@ -302,7 +236,6 @@ public class Boxhead implements ApplicationListener {
 				else explosions.remove(i);
 			}
 
-
 			font.draw(batch, "Level: " + level, 30, 30);
 			font.draw(batch, "Score: " + score, 1000, 30);
 			font.draw(batch, healthString, 250, 30);
@@ -313,22 +246,22 @@ public class Boxhead implements ApplicationListener {
 				huge.draw(batch, "Lonely", 40, 40);
 
 				huge.setColor(0, 0, 1, 1);
-				huge.draw(batch, "Blue.", 50, 200);
+				huge.draw(batch, "Blue.", 650, 40);
 				huge.setColor(1, 1, 1, 1);
 
 				_font.draw(batch, prefs.getString("name"), 40, 600);
 				
 				_font.draw(batch, "Highscore: "+ Integer.toString(prefs.getInteger("highscore")), 40, 650);
 
-				solo.drawButton(batch, 0);
-				online.drawButton(batch, 0);
-				options.drawButton(batch, 0);
+				solo.drawButton(batch, SCREEN_WIDTH/2 - 75);
+				//online.drawButton(batch, 0);
+				//options.drawButton(batch, 0);
 
 			}
 			else if (gameOver){
 				huge.draw(batch, "GAME OVER", 40, 40);
-				replay.drawButton(batch, 0);
-				quitToMain.drawButton(batch, 0);
+				replay.drawButton(batch, SCREEN_WIDTH/2 - 100);
+				quitToMain.drawButton(batch, SCREEN_WIDTH/2 - 80);
 
 			}
 			else if (onlineMenu){
@@ -401,7 +334,7 @@ public class Boxhead implements ApplicationListener {
 					character.moveCharacter(mover.getxDiff(), mover.getyDiff());
 
 					if (network){
-					
+						
 					}
 
 				}
@@ -439,12 +372,6 @@ public class Boxhead implements ApplicationListener {
 					currentTouchTwo = false;
 				}
 				
-				for (int i = 0 ; i < abs.size() ; i++){
-					AugmentedBullet current = abs.get(i);
-					bullets.add(new Bullet(current.getX(),current.getY(),current.getSpeedx(),current.getSpeedy()));
-					abs.remove(i);
-					
-				}
 				
 				// remove bullets that are outside of the screen, and move them
 				for (int i = 0; i < bullets.size(); i++) {
@@ -463,7 +390,6 @@ public class Boxhead implements ApplicationListener {
 
 				
 				//printf(enemies.size());
-
 				//	printf ("kills:"+kills);
 				//	printf ("deathLimit:"+deathLimit);
 				//	printf (isScheduled);
@@ -474,9 +400,9 @@ public class Boxhead implements ApplicationListener {
 					level++;
 					Timer t = Timer.instance;
 					t.clear();
-					Timer.schedule(new SpawnEnemies(level), 3, 1, level * 20);
+					Timer.schedule(new SpawnEnemies(level), 1, ENEMY_SPAWN_DELAY, level * ENEMIES_PER_LEVEL);
 					kills = 0;
-					deathLimit = level *20;
+					deathLimit = level *ENEMIES_PER_LEVEL;
 					printf ("newlevel");
 					isScheduled = true;
 
@@ -489,8 +415,6 @@ public class Boxhead implements ApplicationListener {
 
 						if (enemies.get(i).isColliding(character, 120)){
 
-							//Timer.schedule(new DecreaseHealth (character), 0, 1, 1);
-							//remove
 							//character.decreaseHealth();
 							healthString = "";
 							for (int k = 0; k < character.getHealth() /13; k++){
@@ -503,7 +427,8 @@ public class Boxhead implements ApplicationListener {
 
 						for (int j = 0; j < bullets.size(); j++) {
 							if (enemies.get(i).isColliding(bullets.get(j), 60)) {
-								enemies.get(i).decreaseHealth();
+								//enemies.get(i).decreaseHealth();
+								enemies.get(i).setHealth(-1);
 								bullets.remove(j);
 							}
 						}
@@ -511,7 +436,14 @@ public class Boxhead implements ApplicationListener {
 
 							Random rand = new Random();
 
-							currentScore = 1 + rand.nextInt(5);
+							float distance = character.getDistance(enemies.get(i));
+							if (distance > 550) currentScore = 10;
+							else if (distance > 400) currentScore = 5;
+							else if (distance > 300) currentScore = 4;
+							else if (distance > 200) currentScore = 3;
+							else if (distance > 100) currentScore = 2;
+							else currentScore = 1;
+							
 							score += currentScore;
 							rand = null;
 							cex = enemies.get(i).getEnemy().x;
@@ -529,8 +461,8 @@ public class Boxhead implements ApplicationListener {
 					printf(e.getMessage());
 				}
 
-
-
+				
+				
 				if (character.getHealth() <= 0){
 					game = false;
 					gameOver = true;
@@ -555,8 +487,8 @@ public class Boxhead implements ApplicationListener {
 
 				if (mainMenu){
 					solo.setPressed(touchPos.x, touchPos.y);
-					online.setPressed(touchPos.x, touchPos.y);
-					options.setPressed(touchPos.x, touchPos.y);
+					//online.setPressed(touchPos.x, touchPos.y);
+					//options.setPressed(touchPos.x, touchPos.y);
 
 
 				}
@@ -579,18 +511,18 @@ public class Boxhead implements ApplicationListener {
 
 						resetGame();
 					}
-					else if (online.isReleased() ){
-						online.setPressed(false);
-						//if (clientMSG.isConnected()){
-							//onlineMenu = true;
-							//mainMenu = false;
-						//}else {
-						//}
-
-					}
-					else if (options.isReleased()){
-						options.setPressed(false);
-					}
+//					else if (online.isReleased() ){
+//						online.setPressed(false);
+//						//if (clientMSG.isConnected()){
+//							//onlineMenu = true;
+//							//mainMenu = false;
+//						//}else {
+//						//}
+//
+//					}
+//					else if (options.isReleased()){
+//						options.setPressed(false);
+//					}
 
 				}
 				else if (gameOver){
@@ -700,7 +632,7 @@ public class Boxhead implements ApplicationListener {
 			healthString +="|";
 		}
 
-		Timer.schedule(new SpawnEnemies(level), 0, 2, 20);
+		Timer.schedule(new SpawnEnemies(level), 0, ENEMY_SPAWN_DELAY, ENEMIES_PER_LEVEL);
 	}
 
 
@@ -722,28 +654,6 @@ public class Boxhead implements ApplicationListener {
 	}
 
 
-	////Networking Properties
-
-	Character networkCharacter = new Character();
-	ArrayList<AugmentedBullet> abs = new ArrayList<AugmentedBullet>();
-	
-	int network_id = -1;
-	public void setNetworkCharacter (float x, float y)
-	{
-		networkCharacter.setPosition(x, y);
-	}
-	
-	public void createNetworkBullets (float x, float y, double speedX, double speedY)
-	{
-		abs.add(new AugmentedBullet (x,y,speedX,speedY));
-	}
-	public void startGame (int id){
-		network_id = id;
-		hostWaitingRoom = false;
-		game = true;
-		resetGame();
-		network = true;
-	}
 
 
 }

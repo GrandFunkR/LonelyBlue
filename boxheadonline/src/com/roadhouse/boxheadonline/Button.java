@@ -10,7 +10,7 @@ import com.badlogic.gdx.math.Rectangle;
 
 public class Button {
 	
-	public static float BUTTON_WIDTH = 512;
+	public static float BUTTON_WIDTH = Boxhead.SCREEN_WIDTH;
 	public static float BUTTON_HEIGHT = 128;
 	
 	private boolean pressed;
@@ -50,7 +50,8 @@ public class Button {
 		 
 		if (this.isPressed()){
 			font.setColor(Color.BLACK);
-			batch.draw(touchImg, touch.x, touch.y);	
+			batch.draw(touchImg, touch.x, touch.y, BUTTON_WIDTH, BUTTON_HEIGHT);	
+			
 		}
 		else {
 			font.setColor(Color.WHITE);

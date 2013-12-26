@@ -105,8 +105,24 @@ public class Character extends Collidable implements Serializable{
 		
 	}
 	
+	public float getDistance(Collidable o){
+		float cx = character.x;
+		float cy = character.y;
+		float ox = o.getControl().x;
+		float oy = o.getControl().y;
+		float diffX = 0, diffY = 0;
+		if (cx < ox) diffX = ox - cx;
+		else if (cx > ox) diffX = cx - ox;
+		if (cy < oy) diffY = oy - cy;
+		else if (cy > oy) diffY = cy - oy;
+		
+		return (float) (Math.sqrt((double)(diffX*diffX + diffY*diffY)));
+		 
+		
+	}
+	
 	public String toString(){
-		return "CHARACTER " + character.x + " " + character.y;
+		return "CHARACTER;" + character.x + ";" + character.y;
 	}
 	
 	

@@ -10,8 +10,8 @@
 	<classpathentry kind="lib" path="libs/gdx-freetype.jar"/>
 	<classpathentry kind="lib" path="/boxheadonline/libs/gdx-freetype-natives.jar"/>
 	<classpathentry kind="lib" path="libs/java_websocket.jar"/>
-	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
 	<classpathentry kind="lib" path="libs/gamooga.jar"/>
 	<classpathentry kind="lib" path="/Users/Sameid/Downloads/adt-bundle-mac-x86_64-20131030/sdk/platforms/android-19/android.jar"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
