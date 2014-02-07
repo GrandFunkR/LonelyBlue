@@ -2,24 +2,28 @@
 
 package com.roadhouse.boxheadonline;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Random;
-
-
-
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Timer;
+import com.roadhouse.networking.NetworkThread;
+import com.roadhouse.networking.Packet;
 import com.roadhouse.ui.InputHandler;
 
 
@@ -33,15 +37,16 @@ public class Boxhead implements ApplicationListener {
 	public final static int UP_RIGHT = 5;
 	public final static int UP = 6;
 	public final static int RIGHT = 7;
-	
+
 	public final static int ENEMIES_PER_LEVEL = 100;
 	public final static float ENEMY_SPAWN_DELAY = 0.35f;
-	
+
 	public static Preferences prefs;
 	public static boolean played;
-	
+
 	OrthographicCamera camera;
 	SpriteBatch batch;
+	ShapeRenderer sr;
 
 	BitmapFont font ;
 	BitmapFont huge ;
@@ -49,22 +54,28 @@ public class Boxhead implements ApplicationListener {
 	FreeTypeFontGenerator generator;
 
 	Character character;
+	Character peer;
 	Joypad mover;
 	Joypad shooter;
+
 	Texture randimg;
-	Texture bg;
+
+	Texture mainMenuImg_signedIn;
+	Texture mainMenuImg_signedOut;
+	Texture gameOverImg;
+	Texture multiPlayerImg;
 
 	ArrayList<Bullet> bullets;
 	public static ArrayList<Enemy> enemies;
 	ArrayList <ScoreUp> scoreUps;
 	ArrayList <Explosion> explosions;
-	
+
 	public final static int SCREEN_WIDTH = 1280;
 	public final static int SCREEN_HEIGHT = 720;
 	//public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|\\/?-+=()*&.:;,{}\"�`'<>";
-    public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|/?-+=()*&.:;,{}";
+	public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|/?-+=()*&.:;,{}";
 
-    boolean currentTouchOne = false;
+	boolean currentTouchOne = false;
 	boolean currentTouchTwo = false;
 	boolean isScheduled = true;
 	boolean collideScheduled = false;
@@ -74,22 +85,23 @@ public class Boxhead implements ApplicationListener {
 	boolean pause = false;
 	boolean mainMenu = true;
 	boolean onlineMenu = false;
-	boolean hostWaitingRoom = false;
-	boolean createOrJoinRoom = false;
 
-	boolean network = true;
-	boolean host = false;
+	boolean signedIn = false;
+	boolean isServer = false;
+	boolean multiplayerGame = false;
 
-	Button replay;
-	Button quitToMain;
+	Button replayBtn;
+	Button quitToMainBtn;
 
-	Button solo;
-	Button online;
-	//Button options;
+	Button singlePlayerBtn;
+	Button multiplayerBtn;
+	Button instructionsBtn;
+	Button signIn_OutBtn;
 
-	Button createRoom;
-	Button enterRoom;
-	
+	Button invitePlayersBtn;
+	Button showInvitationsBtn;
+	Button backBtn;
+
 	Music music;
 
 	double speedX, speedY;
@@ -97,10 +109,13 @@ public class Boxhead implements ApplicationListener {
 	int score;
 	int kills;
 	int deathLimit;
-	
+
 	int currentScore;
 	float cex, cey;
 	String healthString;
+	AndroidAccessLayer android;
+
+	boolean tapToStart = false;
 
 	int myID;
 	public static enum platformCode {DESKTOP, ANDROID, HTML5};
@@ -110,32 +125,41 @@ public class Boxhead implements ApplicationListener {
 		super();
 	}
 
+	public Boxhead(platformCode pC, AndroidAccessLayer aal){
+		super();
+		android = aal;
+		if (pC == platformCode.DESKTOP)signedIn = false;
+		else if (pC == platformCode.ANDROID)signedIn = android.isSignedIn();
+
+	}
+
 	@Override
 	public void create() {		
 		printf("Lonely Blue. v0.1");
-		
+
 		prefs = Gdx.app.getPreferences("myprefs");
 		played = !prefs.get().isEmpty();
-		
+
 		if (!played){
 			LBInputListener listener = new LBInputListener(prefs);
 			Gdx.input.setOnscreenKeyboardVisible(true);
 			Gdx.input.getTextInput(listener, "Display Name:", "");
-			
+
 			prefs.putInteger("highscore", 0);
 			prefs.flush();
 		}
-		
+
 		music = Gdx.audio.newMusic(Gdx.files.internal("testing/track1.mp3"));
 		music.setVolume(0.5f);
 		music.setLooping(true);
-		music.play(); 
-		  
+		//music.play(); 
+
 		Texture.setEnforcePotImages(false);
-		
+
 		camera = new OrthographicCamera();
 		camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
 		batch = new SpriteBatch();
+		sr = new ShapeRenderer();
 
 		level = 1;
 		character = new Character();
@@ -143,18 +167,20 @@ public class Boxhead implements ApplicationListener {
 		mover = new Joypad(true);
 		shooter = new Joypad(false);
 		randimg = new Texture(Gdx.files.internal("testing/char.png"));
-		bg = new Texture(Gdx.files.internal("testing/bg.Jpg"));
+		mainMenuImg_signedIn = new Texture(Gdx.files.internal("testing/mainMenuImg_signedIn.png"));
+		mainMenuImg_signedOut = new Texture(Gdx.files.internal("testing/mainMenuImg_signedOut.png"));
+		multiPlayerImg = new Texture(Gdx.files.internal("testing/multiplayerImg.png"));
+
 		bullets = new ArrayList<Bullet>();
 		enemies = new ArrayList<Enemy>();
 		scoreUps = new ArrayList<ScoreUp>();
 		explosions = new ArrayList<Explosion>();
-		
-		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/pixel_maz.ttf"));
-		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/big_noodle_titling.ttf"));	
-		font = _generator.generateFont(70, FONT_CHARACTERS, true);
+
+		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/Montserrat-Regular.ttf"));	
+		font = _generator.generateFont(27, FONT_CHARACTERS, true);
 		huge = _generator.generateFont(300, FONT_CHARACTERS, true);
 		_font = _generator.generateFont(60, FONT_CHARACTERS, true);
-		generator.dispose();
+		_generator.dispose();
 
 		healthString = "";
 
@@ -162,16 +188,19 @@ public class Boxhead implements ApplicationListener {
 			healthString +="|";
 		}
 
-		replay = new Button (0, 300, "REPLAY");
-		quitToMain = new Button (0, 500, "MENU");
+		replayBtn = new Button (0, 300, "Replay", Button.BLUE);
+		quitToMainBtn = new Button (0, 500, "Quit", Button.BLUE);
 
-		solo = new Button (0, 350, "PLAY!");
-		
-		//online = new Button (700, 300, "ONLINE (SOON!)");
+		singlePlayerBtn = new Button (800, 54, "SINGLE PLAYER", Button.BLUE);
+
+		multiplayerBtn = new Button (800, 149, "MULTIPLAYER", Button.RED);
 		//options = new Button (700, 500, "OPTIONS (COMING SOON)");
-		
-		createRoom = new Button (700, 100, "CREATE ROOM");
-		enterRoom = new Button (700, 300, "JOIN ROOM");
+		signIn_OutBtn = new Button (0,535, "SIGN IN", Button.LIGHT_GREY);
+
+		invitePlayersBtn = new Button (800, 54, "INVITE PLAYERS", Button.ORANGE);
+		showInvitationsBtn = new Button (800, 149, "SHOW INVITATIONS", Button.NAVY_BLUE);
+		backBtn = new Button (800,244, "BACK", Button.LIGHT_PURPLE);
+
 		deathLimit = 20;
 	}
 
@@ -181,19 +210,40 @@ public class Boxhead implements ApplicationListener {
 		Bullet.dispose();
 		shooter.dispose();
 		mover.dispose();
+		mainMenuImg_signedIn.dispose();
+		mainMenuImg_signedOut.dispose();
+		multiPlayerImg.dispose();
+
 	}
 	boolean update = false;
 
 	@Override
 	public void render() {
-		
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
-		batch.draw(bg, 0,0);
+		sr.setProjectionMatrix(camera.combined);
+		
+		
+		//batch.draw(bg, 0,0);
 		if (game){
+
+			if (!tapToStart){
+				//draw initial game play stuff
+				tapToStart = currentTouchOne || currentTouchTwo;
+				resetGame();
+				
+			}
+
 			// If currently touching screen, then draw respective Joypad
 			if (currentTouchOne) {
 				mover.drawJoypad(batch);
@@ -203,33 +253,42 @@ public class Boxhead implements ApplicationListener {
 			}
 
 			// Draw character on screen
+
 			batch.draw(randimg, 
 					character.getControl().x - character.getControl().radius,
 					character.getControl().y - character.getControl().radius);
-			
+
+			if (multiplayerGame){
+				batch.draw(randimg, 
+						peer.getControl().x - peer.getControl().radius,
+						peer.getControl().y - peer.getControl().radius);
+
+			}
+
+
 			for (int i = 0; i < enemies.size(); i++) {
 				Enemy current = enemies.get(i);
 				batch.draw(Enemy.getEneImg(), current.getEnemy().x - current.getEnemy().radius,
 						current.getEnemy().y - current.getEnemy().radius);
 			}
-			
+
 			// draw possible bullets that are shot
 			for (int i = 0; i < bullets.size(); i++) {
 				Bullet current = bullets.get(i);
 				batch.draw(Bullet.getImage(), current.getControl().x,
 						current.getControl().y);
 			}
-			
+
 			for (int i = 0 ; i < scoreUps.size() ; i++){
 				ScoreUp current = scoreUps.get(i);
 				if (current.incrementOrRemove()){
 					scoreUps.remove(i);
 				}
 				current.y--;	  
-		        
+
 				font.draw(batch, "+" + current.currentScore, current.x, current.y);
 			}
-			
+
 			for (int i = 0; i < explosions.size() ; i++){
 				Explosion current = explosions.get(i);
 				if(!current.isDone())current.draw(batch);
@@ -243,35 +302,30 @@ public class Boxhead implements ApplicationListener {
 		else {
 
 			if (mainMenu){
-				huge.draw(batch, "Lonely", 40, 40);
+				if (signedIn)batch.draw(mainMenuImg_signedIn, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+				else batch.draw(mainMenuImg_signedOut, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+				font.draw(batch, prefs.getString("name"), 130, 475);
 
-				huge.setColor(0, 0, 1, 1);
-				huge.draw(batch, "Blue.", 650, 40);
-				huge.setColor(1, 1, 1, 1);
+				_font.draw(batch, Integer.toString(prefs.getInteger("highscore")), 862, 490);
 
-				_font.draw(batch, prefs.getString("name"), 40, 600);
-				
-				_font.draw(batch, "Highscore: "+ Integer.toString(prefs.getInteger("highscore")), 40, 650);
-
-				solo.drawButton(batch, SCREEN_WIDTH/2 - 75);
-				//online.drawButton(batch, 0);
+				//singlePlayerBtn.drawButton(batch);
+				//multiplayerBtn.drawButton(batch);
 				//options.drawButton(batch, 0);
+				//signIn_OutBtn.drawButton(batch);
 
 			}
 			else if (gameOver){
 				huge.draw(batch, "GAME OVER", 40, 40);
-				replay.drawButton(batch, SCREEN_WIDTH/2 - 100);
-				quitToMain.drawButton(batch, SCREEN_WIDTH/2 - 80);
+				//replayBtn.drawButton(batch);
+				//quitToMainBtn.drawButton(batch);
 
 			}
 			else if (onlineMenu){
+				batch.draw(multiPlayerImg, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+				//invitePlayersBtn.drawButton(batch);
+				//showInvitationsBtn.drawButton(batch);
+				//backBtn.drawButton(batch);
 
-				font.draw(batch, "Welcome to Roadhouse.", 40, 40);
-				createRoom.drawButton(batch, 0);
-				enterRoom.drawButton(batch, 0);
-
-			}
-			else if (hostWaitingRoom){
 			}
 		}
 		// End drawing to batch<SpriteBatch>
@@ -283,6 +337,16 @@ public class Boxhead implements ApplicationListener {
 		int right = 4;
 		if (game){
 			if (!pause){ 
+
+				if (multiplayerGame){
+					send = null;
+					send = new Packet();
+					send.setCharacter(character.toString());
+					send.setHost(isServer);
+					nt.sendPacket(send.getBytes());
+					recieve = Packet.createFromBytes(nt.getNewPacket());
+					peer.interpret(recieve.getCharacter());
+				}
 
 				if (Gdx.input.isTouched(0)) {
 
@@ -320,22 +384,15 @@ public class Boxhead implements ApplicationListener {
 					touchLeft.set(Gdx.input.getX(left), Gdx.input.getY(left), 0);
 					camera.unproject(touchLeft);
 
-
 					if (!currentTouchOne) {
 						mover.initialTouch(touchLeft.x, touchLeft.y);
 						currentTouchOne = true;
 					}
-					
 
-					
 					// adjust magnitude of knob with pad in mover<Joypad>
 					mover.adjustMagnitude(touchLeft.x, touchLeft.y);
 					// move character according to mover<Joypad> x/y differences
 					character.moveCharacter(mover.getxDiff(), mover.getyDiff());
-
-					if (network){
-						
-					}
 
 				}
 				else {
@@ -360,117 +417,118 @@ public class Boxhead implements ApplicationListener {
 					speedX = 30 * Math.cos(direction);
 					speedY = 30 * Math.sin(direction);
 
-					
-					
+
+
 					bullets.add(new Bullet(character.getControl().x - 8,
 							character.getControl().y - 8, speedX, speedY));
-					
-				
+
+
 				}
 				else {
 					shooter.resetJoypad();
 					currentTouchTwo = false;
 				}
-				
-				
-				// remove bullets that are outside of the screen, and move them
-				for (int i = 0; i < bullets.size(); i++) {
+				if (tapToStart){
+					//gameplay
+					// remove bullets that are outside of the screen, and move them
+					for (int i = 0; i < bullets.size(); i++) {
 
-					Bullet current = bullets.get(i);
-					current.moveBullet();
-					if (current.getControl().x > SCREEN_WIDTH
-							|| current.getControl().x < 0
-							|| current.getControl().y > SCREEN_HEIGHT
-							|| current.getControl().y < 0) {
-						bullets.remove(i);
-						current = null;
-
-					}
-				}
-
-				
-				//printf(enemies.size());
-				//	printf ("kills:"+kills);
-				//	printf ("deathLimit:"+deathLimit);
-				//	printf (isScheduled);
-				//	printf(enemies.size());
-
-
-				if (enemies.size() == 0 && !isScheduled && kills >= deathLimit) {
-					level++;
-					Timer t = Timer.instance;
-					t.clear();
-					Timer.schedule(new SpawnEnemies(level), 1, ENEMY_SPAWN_DELAY, level * ENEMIES_PER_LEVEL);
-					kills = 0;
-					deathLimit = level *ENEMIES_PER_LEVEL;
-					printf ("newlevel");
-					isScheduled = true;
-
-				} else if (enemies.size() > 0 && isScheduled) {
-					isScheduled = false;
-				}
-
-				try {
-					for (int i = 0; i < enemies.size(); i++) {
-
-						if (enemies.get(i).isColliding(character, 120)){
-
-							//character.decreaseHealth();
-							healthString = "";
-							for (int k = 0; k < character.getHealth() /13; k++){
-								healthString+="|";
-							}
-						}
-						else {
-							enemies.get(i).move(character.getControl());
-						}
-
-						for (int j = 0; j < bullets.size(); j++) {
-							if (enemies.get(i).isColliding(bullets.get(j), 60)) {
-								//enemies.get(i).decreaseHealth();
-								enemies.get(i).setHealth(-1);
-								bullets.remove(j);
-							}
-						}
-						if (enemies.get(i).getHealth() < 0){
-
-							Random rand = new Random();
-
-							float distance = character.getDistance(enemies.get(i));
-							if (distance > 550) currentScore = 10;
-							else if (distance > 400) currentScore = 5;
-							else if (distance > 300) currentScore = 4;
-							else if (distance > 200) currentScore = 3;
-							else if (distance > 100) currentScore = 2;
-							else currentScore = 1;
-							
-							score += currentScore;
-							rand = null;
-							cex = enemies.get(i).getEnemy().x;
-							cey = enemies.get(i).getEnemy().y;
-							scoreUps.add(new ScoreUp(currentScore,cex,cey));
-							explosions.add(new Explosion(cex,cey));
-							
-							enemies.remove(i);
-							kills++;
+						Bullet current = bullets.get(i);
+						current.moveBullet();
+						if (current.getControl().x > SCREEN_WIDTH
+								|| current.getControl().x < 0
+								|| current.getControl().y > SCREEN_HEIGHT
+								|| current.getControl().y < 0) {
+							bullets.remove(i);
+							current = null;
 
 						}
 					}
 
-				} catch (Exception e) {
-					printf(e.getMessage());
-				}
 
-				
-				
-				if (character.getHealth() <= 0){
-					game = false;
-					gameOver = true;
+					//printf(enemies.size());
+					//	printf ("kills:"+kills);
+					//	printf ("deathLimit:"+deathLimit);
+					//	printf (isScheduled);
+					//	printf(enemies.size());
+
+
+					if (enemies.size() == 0 && !isScheduled && kills >= deathLimit) {
+						level++;
+						Timer t = Timer.instance;
+						t.clear();
+						Timer.schedule(new SpawnEnemies(level), 1, ENEMY_SPAWN_DELAY, level * ENEMIES_PER_LEVEL);
+						kills = 0;
+						deathLimit = level *ENEMIES_PER_LEVEL;
+						printf ("newlevel");
+						isScheduled = true;
+
+					} else if (enemies.size() > 0 && isScheduled) {
+						isScheduled = false;
+					}
+
+					try {
+						for (int i = 0; i < enemies.size(); i++) {
+
+							if (enemies.get(i).isColliding(character,-18)){
+
+								//character.decreaseHealth();
+								character.setHealth(0);
+								//healthString = "";
+								//for (int k = 0; k < character.getHealth() /13; k++){
+								//	healthString+="|";
+								//}
+							}
+							else {
+								enemies.get(i).move(character.getControl());
+							}
+
+							for (int j = 0; j < bullets.size(); j++) {
+								if (enemies.get(i).isColliding(bullets.get(j), 30)) {
+									//enemies.get(i).decreaseHealth();
+									enemies.get(i).setHealth(-1);
+									bullets.remove(j);
+								}
+							}
+							if (enemies.get(i).getHealth() < 0){
+
+								Random rand = new Random();
+
+								float distance = character.getDistance(enemies.get(i));
+								if (distance > 550) currentScore = 10;
+								else if (distance > 400) currentScore = 5;
+								else if (distance > 300) currentScore = 4;
+								else if (distance > 200) currentScore = 3;
+								else if (distance > 100) currentScore = 2;
+								else currentScore = 1;
+
+								score += currentScore;
+								rand = null;
+								cex = enemies.get(i).getEnemy().x;
+								cey = enemies.get(i).getEnemy().y;
+								scoreUps.add(new ScoreUp(currentScore,cex,cey));
+								explosions.add(new Explosion(cex,cey));
+
+								enemies.remove(i);
+								kills++;
+
+							}
+						}
+
+					} catch (Exception e) {
+						printf(e.getMessage());
+					}
+
+					if (character.getHealth() <= 0){
+						game = false;
+						gameOver = true;
+					}
 				}
 
 			}
 			//pause
 			else {
+
 
 			}
 		}
@@ -486,43 +544,49 @@ public class Boxhead implements ApplicationListener {
 				camera.unproject(touchPos);
 
 				if (mainMenu){
-					solo.setPressed(touchPos.x, touchPos.y);
-					//online.setPressed(touchPos.x, touchPos.y);
+					singlePlayerBtn.setPressed(touchPos.x, touchPos.y);
+					multiplayerBtn.setPressed(touchPos.x, touchPos.y);
 					//options.setPressed(touchPos.x, touchPos.y);
+					signIn_OutBtn.setPressed(touchPos.x, touchPos.y);
 
 
 				}
 				else if (gameOver){
-					replay.setPressed(touchPos.x, touchPos.y);
-					quitToMain.setPressed(touchPos.x, touchPos.y);
+					replayBtn.setPressed(touchPos.x, touchPos.y);
+					quitToMainBtn.setPressed(touchPos.x, touchPos.y);
 
 				}
 				else if (onlineMenu){
-					createRoom.setPressed(touchPos.x, touchPos.y);
-					enterRoom.setPressed(touchPos.x, touchPos.y);
+					invitePlayersBtn.setPressed(touchPos.x, touchPos.y);
+					showInvitationsBtn.setPressed(touchPos.x, touchPos.y);
+					backBtn.setPressed(touchPos.x,touchPos.y);
 
 				}
 			}else {
 				if (mainMenu){
-					if (solo.isReleased()){
-						solo.setPressed(false);
+					if (singlePlayerBtn.isReleased()){
+						singlePlayerBtn.setPressed(false);
 						mainMenu = false;
 						game = true;
 
-						resetGame();
+						
 					}
-//					else if (online.isReleased() ){
-//						online.setPressed(false);
-//						//if (clientMSG.isConnected()){
-//							//onlineMenu = true;
-//							//mainMenu = false;
-//						//}else {
-//						//}
-//
-//					}
-//					else if (options.isReleased()){
-//						options.setPressed(false);
-//					}
+					else if (multiplayerBtn.isReleased() ){
+						multiplayerBtn.setPressed(false);
+						if (signedIn){
+							onlineMenu = true;
+							mainMenu = false;	
+						}
+
+					}
+					//					else if (options.isReleased()){
+					//						options.setPressed(false);
+					//					}
+					else if (signIn_OutBtn.isReleased()){
+						signIn_OutBtn.setPressed(false);
+						if (!signedIn)android.initiateSignIn();
+
+					}
 
 				}
 				else if (gameOver){
@@ -530,74 +594,41 @@ public class Boxhead implements ApplicationListener {
 						prefs.putInteger("highscore", score);
 						prefs.flush();
 					}
-					if (replay.isReleased()){
-						replay.setPressed(false);
+					if (replayBtn.isReleased()){
+						replayBtn.setPressed(false);
 						gameOver = false;
 						game = true;
-						resetGame();
 					}
-					else if (quitToMain.isReleased()){
-						quitToMain.setPressed(false);
+					else if (quitToMainBtn.isReleased()){
+						quitToMainBtn.setPressed(false);
 						gameOver = false;
 						mainMenu = true;
 					}
 
 				}
 				else if (onlineMenu){
+					if (invitePlayersBtn.isReleased()){
+						invitePlayersBtn.setPressed(false);
+						//onlineMenu = false;
+						//createOrJoinRoom = true;
+						isServer = true;
+						android.initiateRoomCreation();
+					}
+					else if (showInvitationsBtn.isReleased()){
+						showInvitationsBtn.setPressed(false);
+						//onlineMenu = false;
+						//createOrJoinRoom = true;
+						isServer = false;
+						android.initiateInviteInbox();
 
-
-					if (createRoom.isReleased()){
-						createRoom.setPressed(false);
+					}
+					else if (backBtn.isReleased()){
+						backBtn.setPressed(false);
 						onlineMenu = false;
-						createOrJoinRoom = true;
-						
-						host = true;
-
-						createPassword.displayDialog("Create a password.", "");
-
-
-					}
-					else if (enterRoom.isReleased()){
-						enterRoom.setPressed(false);
-
-						onlineMenu = false;
-						createOrJoinRoom = true;
-
-						host = false;
-
-						createPassword.displayDialog("Create a password.", "");
-						roomNumber.displayDialog("Enter a room number.", "");
-
-
+						mainMenu = true;
 					}
 				}
-				else if (createOrJoinRoom){
 
-					if (host){
-						if (createPassword.isInput()){
-							createOrJoinRoom = false;
-							hostWaitingRoom = true;
-							password = createPassword.getText();
-							//clientMSG.sendMessage("CREATE_ROOM" + " " + clientMSG.getId() + " " + password);
-						}
-					}
-					else{
-						if (createPassword.isInput() && roomNumber.isInput()){
-							createOrJoinRoom = false;
-							
-							printf(createPassword.getText() + " " + roomNumber.getText());
-							//clientMSG.sendMessage("JOIN_ROOM" 
-							//+ " " + roomNumber.getText() 
-							//+ " " + createPassword.getText() 
-							//+ " " + clientMSG.getId());
-							
-						}
-					}
-				}
-				else if (hostWaitingRoom){
-
-
-				}
 
 			}
 		}
@@ -605,14 +636,16 @@ public class Boxhead implements ApplicationListener {
 
 	}
 
-	int other_id = -1;
-	InputHandler createPassword = new InputHandler();
-	InputHandler roomNumber = new InputHandler();
-	String password = "";
-
-
-
-
+	NetworkThread nt = null;
+	Packet send = null, recieve = null;
+	public void startMultiplayerGame(InputStream is, OutputStream os, String npId){
+		nt = new NetworkThread(is, os, npId);
+		nt.start();
+		multiplayerGame = true;
+		onlineMenu = false;
+		game = true;
+		if (isServer)resetGame();
+	}
 
 
 	public void resetGame(){
@@ -620,8 +653,7 @@ public class Boxhead implements ApplicationListener {
 		score = 0;
 		bullets = new ArrayList<Bullet>();
 		enemies = new ArrayList<Enemy>();
-		
-		
+
 		character.resetCharacter();
 		healthString = "";
 
@@ -651,6 +683,14 @@ public class Boxhead implements ApplicationListener {
 
 	@Override
 	public void resume() {
+	}
+
+	public void onSignedIn (boolean connected){
+		signedIn = connected;
+	}
+
+	public void onDisconnected (){
+
 	}
 
 

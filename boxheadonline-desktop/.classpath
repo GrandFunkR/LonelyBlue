@@ -9,9 +9,7 @@
 	<classpathentry kind="lib" path="libs/gdx-natives.jar"/>
 	<classpathentry kind="lib" path="libs/gdx-freetype.jar"/>
 	<classpathentry kind="lib" path="libs/gdx-freetype-natives.jar"/>
-	<classpathentry kind="lib" path="libs/gamooga.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/BaseGameUtils"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/google-play-services_lib"/>
-	<classpathentry kind="lib" path="/google-play-services_lib/libs/google-play-services.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

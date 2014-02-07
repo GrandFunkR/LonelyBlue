@@ -12,7 +12,8 @@ public class Enemy extends Collidable {
 	private double speedX, speedY;
 
 	final static int HEALTH_MAX = 15;
-	final static int SPEED = 10;
+	final static int MAX_SPEED = 5;
+	final static int MIN_SPEED = 1;
 	private int health;
 	private double direction;
 
@@ -27,7 +28,7 @@ public class Enemy extends Collidable {
 		speedY = 0.0;
 
 		health =HEALTH_MAX;
-		setEneImg(new Texture (Gdx.files.internal("testing/waleef.png")));
+		setEneImg(new Texture (Gdx.files.internal("testing/enemy.png")));
 	}
 
 	public static Enemy enemySpawn(int level){
@@ -46,16 +47,20 @@ public class Enemy extends Collidable {
 			tempY *= -1;
 		}
 		Enemy newEnemy = new Enemy();
-		newEnemy.getEnemy().radius = 64;
+		newEnemy.getEnemy().radius = 32;
 		newEnemy.getEnemy().x = Boxhead.SCREEN_WIDTH / 2 + tempX;
 		newEnemy.getEnemy().y = Boxhead.SCREEN_HEIGHT / 2 + tempY;
 
 		return newEnemy;
 	}
+	
+	private int rs(){
+		return MAX_SPEED + (int)(Math.random() * ((MAX_SPEED-MIN_SPEED) + 1));
+	}
 
 	private void calculateSpeed (){
-		speedX = SPEED*(Math.cos(direction));
-		speedY = SPEED*(Math.sin(direction));
+		speedX = rs()*(Math.cos(direction));
+		speedY = rs()*(Math.sin(direction));
 	}
 
 	public void move (Circle character){

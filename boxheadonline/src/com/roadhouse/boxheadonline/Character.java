@@ -26,10 +26,11 @@ public class Character extends Collidable implements Serializable{
 	public Character(){
 		super.setControl(new Circle());
 		character = super.getControl();
-		character.radius = 64;
+		character.radius = 32;
 		character.x = 1280 / 2;
 		character.y = 720 / 2;
 		setHealth(CHARACTER_HEALTH);
+		
 	}
 	
 	public Character(int x, int y){
@@ -41,21 +42,21 @@ public class Character extends Collidable implements Serializable{
 	}
 	
 	public void moveCharacter(double xDiff2, double yDiff2) {
-		if (character.x >= 0 && character.x + 128 <= Boxhead.SCREEN_WIDTH) {
+		if (character.x >= 0 && character.x + 64 <= Boxhead.SCREEN_WIDTH) {
 			character.x += xDiff2 * CHARACTER_SPEED;
 		} else if (character.x < 0) {
 			character.x = 0;
 		} else if (character.x + character.radius * 2 > Boxhead.SCREEN_WIDTH) {
-			character.x = (float) (Boxhead.SCREEN_WIDTH - 129);
+			character.x = (float) (Boxhead.SCREEN_WIDTH - 65);
 		}
 
-		if (character.y >= 0 && character.y + 128 <= Boxhead.SCREEN_HEIGHT) {
+		if (character.y >= 0 && character.y + 64 <= Boxhead.SCREEN_HEIGHT) {
 
 			character.y -= yDiff2 * CHARACTER_SPEED;
 		} else if (character.y < 0) {
 			character.y = 0;
 		} else if (character.y + character.radius * 2 > Boxhead.SCREEN_HEIGHT) {
-			character.y = (float) (Boxhead.SCREEN_HEIGHT - 129);
+			character.y = (float) (Boxhead.SCREEN_HEIGHT - 65);
 		}
 		
 	}
@@ -123,6 +124,12 @@ public class Character extends Collidable implements Serializable{
 	
 	public String toString(){
 		return "CHARACTER;" + character.x + ";" + character.y;
+	}
+	
+	public void interpret(String s){
+		String[] result = s.split(";");
+		this.setPosition(Float.parseFloat(result[0]), Float.parseFloat(result[1]));
+		
 	}
 	
 	

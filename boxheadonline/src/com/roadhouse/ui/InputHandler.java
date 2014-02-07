@@ -10,6 +10,7 @@ public class InputHandler {
 	
 	public InputHandler (){
 		k = new K ();
+		
 	}
 	
 	public void displayDialog (String title, String text){

@@ -1,0 +1,10 @@
+package com.roadhouse.boxheadonline;
+
+public interface AndroidAccessLayer {
+	
+	public abstract void initiateSignIn();
+	public abstract boolean isSignedIn();
+	public abstract void initiateRoomCreation();
+	public abstract void initiateInviteInbox();
+
+}
