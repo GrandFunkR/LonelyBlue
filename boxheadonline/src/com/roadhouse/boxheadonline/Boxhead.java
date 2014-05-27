@@ -23,7 +23,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Timer;
 import com.roadhouse.networking.NetworkThread;
-import com.roadhouse.networking.Packet;
 import com.roadhouse.ui.InputHandler;
 
 
@@ -40,17 +39,27 @@ public class Boxhead implements ApplicationListener {
 
 	public final static int ENEMIES_PER_LEVEL = 100;
 	public final static float ENEMY_SPAWN_DELAY = 0.35f;
-
+	public final static int BULLET_SPEED = 35;
+	public final static int ENEMY_MAX_SPEED = 10;
+	public final static int ENEMY_MIN_SPEED = 8;
+	public final static int DESKTOP = 0;
+	public final static int ANDROID = 1;
+	
+	public final static boolean DEVELOPER = true;
+	
+	
+	public static int platform = -1;
+	
+	//"highscore_v2" --> b8174e9a5b95a049a72c7f9a2e49a849
+	public final static String HIGHSCORE_KEY = "b8174e9a5b95a049a72c7f9a2e49a849";
+	
 	public static Preferences prefs;
 	public static boolean played;
 
 	OrthographicCamera camera;
 	SpriteBatch batch;
-	ShapeRenderer sr;
 
-	BitmapFont font ;
-	BitmapFont huge ;
-	BitmapFont _font;
+	BitmapFont font, huge, _font;
 	FreeTypeFontGenerator generator;
 
 	Character character;
@@ -59,11 +68,7 @@ public class Boxhead implements ApplicationListener {
 	Joypad shooter;
 
 	Texture randimg;
-
-	Texture mainMenuImg_signedIn;
-	Texture mainMenuImg_signedOut;
-	Texture gameOverImg;
-	Texture multiPlayerImg;
+	Texture profileIcon;
 
 	ArrayList<Bullet> bullets;
 	public static ArrayList<Enemy> enemies;
@@ -73,7 +78,7 @@ public class Boxhead implements ApplicationListener {
 	public final static int SCREEN_WIDTH = 1280;
 	public final static int SCREEN_HEIGHT = 720;
 	//public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|\\/?-+=()*&.:;,{}\"�`'<>";
-	public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|/?-+=()*&.:;,{}";
+	public static final String FONT_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789][_!$%#@|/?-+=()*&.:;,{}<";
 
 	boolean currentTouchOne = false;
 	boolean currentTouchTwo = false;
@@ -89,14 +94,17 @@ public class Boxhead implements ApplicationListener {
 	boolean signedIn = false;
 	boolean isServer = false;
 	boolean multiplayerGame = false;
+	
+	boolean tutorial = true;
 
 	Button replayBtn;
 	Button quitToMainBtn;
 
 	Button singlePlayerBtn;
-	Button multiplayerBtn;
+	Button leaderboardBtn;
+	//Button signIn_OutBtn;
 	Button instructionsBtn;
-	Button signIn_OutBtn;
+	
 
 	Button invitePlayersBtn;
 	Button showInvitationsBtn;
@@ -118,18 +126,23 @@ public class Boxhead implements ApplicationListener {
 	boolean tapToStart = false;
 
 	int myID;
-	public static enum platformCode {DESKTOP, ANDROID, HTML5};
 
-	public Boxhead(platformCode pC)
+	public Boxhead(String p)
 	{
 		super();
 	}
 
-	public Boxhead(platformCode pC, AndroidAccessLayer aal){
+	public Boxhead(int p, AndroidAccessLayer aal){
 		super();
 		android = aal;
-		if (pC == platformCode.DESKTOP)signedIn = false;
-		else if (pC == platformCode.ANDROID)signedIn = android.isSignedIn();
+		if (p == Boxhead.DESKTOP){
+			signedIn = false;
+			platform = Boxhead.DESKTOP;
+		}
+		else if (p == Boxhead.ANDROID){
+			signedIn = android.isSignedIn();
+			platform = Boxhead.ANDROID;
+		}
 
 	}
 
@@ -145,11 +158,11 @@ public class Boxhead implements ApplicationListener {
 			Gdx.input.setOnscreenKeyboardVisible(true);
 			Gdx.input.getTextInput(listener, "Display Name:", "");
 
-			prefs.putInteger("highscore", 0);
+			prefs.putInteger(HIGHSCORE_KEY, 0);
 			prefs.flush();
 		}
 
-		music = Gdx.audio.newMusic(Gdx.files.internal("testing/track1.mp3"));
+		music = Gdx.audio.newMusic(Gdx.files.internal("audio/track1.mp3"));
 		music.setVolume(0.5f);
 		music.setLooping(true);
 		//music.play(); 
@@ -159,26 +172,23 @@ public class Boxhead implements ApplicationListener {
 		camera = new OrthographicCamera();
 		camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
 		batch = new SpriteBatch();
-		sr = new ShapeRenderer();
 
 		level = 1;
 		character = new Character();
 
 		mover = new Joypad(true);
 		shooter = new Joypad(false);
-		randimg = new Texture(Gdx.files.internal("testing/char.png"));
-		mainMenuImg_signedIn = new Texture(Gdx.files.internal("testing/mainMenuImg_signedIn.png"));
-		mainMenuImg_signedOut = new Texture(Gdx.files.internal("testing/mainMenuImg_signedOut.png"));
-		multiPlayerImg = new Texture(Gdx.files.internal("testing/multiplayerImg.png"));
-
+		randimg = new Texture(Gdx.files.internal("sprites/char.png"));
+		profileIcon = new Texture(Gdx.files.internal("sprites/profile_icon.png"));
+		
 		bullets = new ArrayList<Bullet>();
 		enemies = new ArrayList<Enemy>();
 		scoreUps = new ArrayList<ScoreUp>();
 		explosions = new ArrayList<Explosion>();
 
-		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("testing/Montserrat-Regular.ttf"));	
-		font = _generator.generateFont(27, FONT_CHARACTERS, true);
-		huge = _generator.generateFont(300, FONT_CHARACTERS, true);
+		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Montserrat-Regular.ttf"));	
+		font = _generator.generateFont(45, FONT_CHARACTERS, true);
+		huge = _generator.generateFont(150, FONT_CHARACTERS, true);
 		_font = _generator.generateFont(60, FONT_CHARACTERS, true);
 		_generator.dispose();
 
@@ -188,18 +198,17 @@ public class Boxhead implements ApplicationListener {
 			healthString +="|";
 		}
 
-		replayBtn = new Button (0, 300, "Replay", Button.BLUE);
-		quitToMainBtn = new Button (0, 500, "Quit", Button.BLUE);
-
-		singlePlayerBtn = new Button (800, 54, "SINGLE PLAYER", Button.BLUE);
-
-		multiplayerBtn = new Button (800, 149, "MULTIPLAYER", Button.RED);
-		//options = new Button (700, 500, "OPTIONS (COMING SOON)");
-		signIn_OutBtn = new Button (0,535, "SIGN IN", Button.LIGHT_GREY);
-
-		invitePlayersBtn = new Button (800, 54, "INVITE PLAYERS", Button.ORANGE);
-		showInvitationsBtn = new Button (800, 149, "SHOW INVITATIONS", Button.NAVY_BLUE);
-		backBtn = new Button (800,244, "BACK", Button.LIGHT_PURPLE);
+		replayBtn = new Button (555, 200, "REPLAY", Button.ORANGE);
+		quitToMainBtn = new Button (555, 338+3, "BACK", Button.NAVY_BLUE);
+		singlePlayerBtn = new Button (555, 200, "SINGLE PLAYER", Button.LIGHT_BLUE);
+		leaderboardBtn = new Button (555, 338+3, "LEADERBOARD", Button.RED);
+		instructionsBtn = new Button (555, 338+138+6, "INSTRUCTIONS", Button.PURPLE);
+		//signIn_OutBtn = new Button (0,535, "SIGN IN", Button.LIGHT_GREY);
+		
+//
+//		invitePlayersBtn = new Button (800, 54, "INVITE PLAYERS", Button.ORANGE);
+//		showInvitationsBtn = new Button (800, 149, "SHOW INVITATIONS", Button.NAVY_BLUE);
+//		backBtn = new Button (800,244, "BACK", Button.LIGHT_PURPLE);
 
 		deathLimit = 20;
 	}
@@ -210,15 +219,26 @@ public class Boxhead implements ApplicationListener {
 		Bullet.dispose();
 		shooter.dispose();
 		mover.dispose();
-		mainMenuImg_signedIn.dispose();
-		mainMenuImg_signedOut.dispose();
-		multiPlayerImg.dispose();
 
 	}
 	boolean update = false;
 
+	public void delay(long milliseconds){
+		try {
+			Thread.sleep(milliseconds);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	long start = 0;
+	long current = 0;
+	long elapsed = 0;
+	long changed = 0;
 	@Override
 	public void render() {
+		current = System.currentTimeMillis();
 		try {
 			Thread.sleep(10);
 		} catch (InterruptedException e1) {
@@ -231,16 +251,27 @@ public class Boxhead implements ApplicationListener {
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
-		sr.setProjectionMatrix(camera.combined);
 		
 		
-		//batch.draw(bg, 0,0);
+		batch.draw(Button.GREY, 0,0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		if (game){
 
 			if (!tapToStart){
 				//draw initial game play stuff
 				tapToStart = currentTouchOne || currentTouchTwo;
 				resetGame();
+			}
+			
+			if (tutorial){
+
+//				elapsed = (current - start);
+//				changed = elapsed;
+//
+//				if (changed > 500) font.draw(batch, "How", 500, 200);
+//				if (changed > 1000) font.draw(batch, "How to", 500, 200);
+//				if (changed > 1500) font.draw(batch, "How to play...", 500, 200);
+//				if (changed > 2000) currentTouchOne = true;
+				
 				
 			}
 
@@ -265,11 +296,13 @@ public class Boxhead implements ApplicationListener {
 
 			}
 
-
+			Item.drawItems(batch);
+			
 			for (int i = 0; i < enemies.size(); i++) {
 				Enemy current = enemies.get(i);
 				batch.draw(Enemy.getEneImg(), current.getEnemy().x - current.getEnemy().radius,
-						current.getEnemy().y - current.getEnemy().radius);
+						current.getEnemy().y - current.getEnemy().radius, current.getEnemy().radius*2, current.getEnemy().radius*2);
+				
 			}
 
 			// draw possible bullets that are shot
@@ -302,26 +335,28 @@ public class Boxhead implements ApplicationListener {
 		else {
 
 			if (mainMenu){
-				if (signedIn)batch.draw(mainMenuImg_signedIn, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
-				else batch.draw(mainMenuImg_signedOut, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+				//if (signedIn)batch.draw(mainMenuImg_signedIn, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+				//else batch.draw(mainMenuImg_signedOut, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
+//				batch.draw(profileNameBlock, 0,440, Button.BUTTON_WIDTH, Button.BUTTON_HEIGHT);
+//				batch.draw(profileIcon, 0, 440);
+				huge.draw(batch, ".LONELY BLUE", 40, 40);
 				font.draw(batch, prefs.getString("name"), 130, 475);
 
-				_font.draw(batch, Integer.toString(prefs.getInteger("highscore")), 862, 490);
+				_font.draw(batch, Integer.toString(prefs.getInteger(HIGHSCORE_KEY)), 130, 600);
 
-				//singlePlayerBtn.drawButton(batch);
-				//multiplayerBtn.drawButton(batch);
-				//options.drawButton(batch, 0);
+				singlePlayerBtn.drawButton(batch);
+				leaderboardBtn.drawButton(batch);
+				instructionsBtn.drawButton(batch);
 				//signIn_OutBtn.drawButton(batch);
 
 			}
 			else if (gameOver){
 				huge.draw(batch, "GAME OVER", 40, 40);
-				//replayBtn.drawButton(batch);
-				//quitToMainBtn.drawButton(batch);
+				replayBtn.drawButton(batch);
+				quitToMainBtn.drawButton(batch);
 
 			}
 			else if (onlineMenu){
-				batch.draw(multiPlayerImg, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
 				//invitePlayersBtn.drawButton(batch);
 				//showInvitationsBtn.drawButton(batch);
 				//backBtn.drawButton(batch);
@@ -337,100 +372,121 @@ public class Boxhead implements ApplicationListener {
 		int right = 4;
 		if (game){
 			if (!pause){ 
-
 				if (multiplayerGame){
-					send = null;
-					send = new Packet();
-					send.setCharacter(character.toString());
-					send.setHost(isServer);
-					nt.sendPacket(send.getBytes());
-					recieve = Packet.createFromBytes(nt.getNewPacket());
-					peer.interpret(recieve.getCharacter());
+					nt.sendMessage(character.toString());
+					peer.update(nt.getNewMessage());
 				}
+				if (platform == Boxhead.ANDROID || platform == Boxhead.DESKTOP){
+					
+					if (Gdx.input.isTouched(0)) {
 
-				if (Gdx.input.isTouched(0)) {
+						// Touch initialization
+						Vector3 t1 = new Vector3();
+						t1.set(Gdx.input.getX(0), Gdx.input.getY(0), 0);
+						camera.unproject(t1);
+						if (t1.x < SCREEN_WIDTH/2){
+							left = 0;
+						}
+						else if (t1.x > SCREEN_WIDTH/2){
+							right = 0;
+						}
 
-					// Touch initialization
-					Vector3 t1 = new Vector3();
-					t1.set(Gdx.input.getX(0), Gdx.input.getY(0), 0);
-					camera.unproject(t1);
-					if (t1.x < SCREEN_WIDTH/2){
-						left = 0;
+					} 
+
+					if (Gdx.input.isTouched(1)) {
+
+						// Touch initialization
+						Vector3 t1 = new Vector3();
+						t1.set(Gdx.input.getX(1), Gdx.input.getY(1), 0);
+						camera.unproject(t1);
+						if (t1.x < SCREEN_WIDTH/2 && left > 1){
+							left = 1;
+						}
+						else if (t1.x > SCREEN_WIDTH/2 && right > 1){
+							right = 1;
+						}
+
+					} 
+
+					if (Gdx.input.isTouched(left)){
+
+						Vector3 touchLeft = new Vector3();
+						touchLeft.set(Gdx.input.getX(left), Gdx.input.getY(left), 0);
+						camera.unproject(touchLeft);
+
+						if (!currentTouchOne) {
+							mover.initialTouch(touchLeft.x, touchLeft.y);
+							
+							currentTouchOne = true;
+						}
+
+						// adjust magnitude of knob with pad in mover<Joypad>
+						mover.adjustMagnitude(touchLeft.x, touchLeft.y);
+						// move character according to mover<Joypad> x/y differences
+						character.moveCharacter(mover.getxDiff(), mover.getyDiff());
+
 					}
-					else if (t1.x > SCREEN_WIDTH/2){
-						right = 0;
+					else {
+						mover.resetJoypad();
+						currentTouchOne = false;
+						character.decreaseHealth();
+						healthString = "";
+						for (int k = 0; k < character.getHealth() /13; k++){
+							healthString+="|";
+						}
 					}
 
-				} 
+					if (Gdx.input.isTouched(right)){
 
-				if (Gdx.input.isTouched(1)) {
+						Vector3 touchRight = new Vector3();
+						touchRight.set(Gdx.input.getX(right), Gdx.input.getY(right), 0);
+						camera.unproject(touchRight);
 
-					// Touch initialization
-					Vector3 t1 = new Vector3();
-					t1.set(Gdx.input.getX(1), Gdx.input.getY(1), 0);
-					camera.unproject(t1);
-					if (t1.x < SCREEN_WIDTH/2 && left > 1){
-						left = 1;
+						if (!currentTouchTwo) {
+							shooter.initialTouch(touchRight.x, touchRight.y);
+							currentTouchTwo = true;
+						}
+
+						shooter.adjustMagnitude(touchRight.x, touchRight.y);
+
+						Double direction = shooter.calculateDirection(false);
+						speedX = BULLET_SPEED * Math.cos(direction);
+						speedY = BULLET_SPEED * Math.sin(direction);
+
+						bullets.add(new Bullet(character.getControl().x - 8,
+								character.getControl().y - 8, speedX, speedY));
+						
+						Item c = character.getCurrentItem();
+						if (c != null){
+							if (c.getType() == Item.DOUBLE_SHOT){
+								bullets.add(new Bullet(character.getControl().x - 8,
+										character.getControl().y - 8, speedX *-1, speedY *-1));
+							}
+						}
+
 					}
-					else if (t1.x > SCREEN_WIDTH/2 && right > 1){
-						right = 1;
+					else {
+						shooter.resetJoypad();
+						currentTouchTwo = false;
 					}
-
-				} 
-
-				if (Gdx.input.isTouched(left)){
-
-					Vector3 touchLeft = new Vector3();
-					touchLeft.set(Gdx.input.getX(left), Gdx.input.getY(left), 0);
-					camera.unproject(touchLeft);
-
-					if (!currentTouchOne) {
-						mover.initialTouch(touchLeft.x, touchLeft.y);
-						currentTouchOne = true;
-					}
-
-					// adjust magnitude of knob with pad in mover<Joypad>
-					mover.adjustMagnitude(touchLeft.x, touchLeft.y);
-					// move character according to mover<Joypad> x/y differences
-					character.moveCharacter(mover.getxDiff(), mover.getyDiff());
-
 				}
-				else {
-					mover.resetJoypad();
-					currentTouchOne = false;
-				}
-
-				if (Gdx.input.isTouched(right)){
-
-					Vector3 touchRight = new Vector3();
-					touchRight.set(Gdx.input.getX(right), Gdx.input.getY(right), 0);
-					camera.unproject(touchRight);
-
-					if (!currentTouchTwo) {
-						shooter.initialTouch(touchRight.x, touchRight.y);
-						currentTouchTwo = true;
-					}
-
-					shooter.adjustMagnitude(touchRight.x, touchRight.y);
-
-					Double direction = shooter.calculateDirection(false);
-					speedX = 30 * Math.cos(direction);
-					speedY = 30 * Math.sin(direction);
-
-
-
-					bullets.add(new Bullet(character.getControl().x - 8,
-							character.getControl().y - 8, speedX, speedY));
-
-
-				}
-				else {
-					shooter.resetJoypad();
-					currentTouchTwo = false;
-				}
+//				else if (platform == Boxhead.DESKTOP){
+//					if (Gdx.input.isTouched(0)) {
+//
+//						// Touch initialization
+//						Vector3 t1 = new Vector3();
+//						t1.set(Gdx.input.getX(0), Gdx.input.getY(0), 0);
+//						camera.unproject(t1);
+//						
+//						
+//
+//					} 
+//				}
+				
+				
 				if (tapToStart){
 					//gameplay
-					// remove bullets that are outside of the screen, and move them
+					// remove bullets that are outside of the screen, or move them
 					for (int i = 0; i < bullets.size(); i++) {
 
 						Bullet current = bullets.get(i);
@@ -441,17 +497,18 @@ public class Boxhead implements ApplicationListener {
 								|| current.getControl().y < 0) {
 							bullets.remove(i);
 							current = null;
-
 						}
 					}
+					
+					Item.expireItems();
+					Item.isItemsColliding(character);
+					character.expireCurrentItem();
 
-
-					//printf(enemies.size());
-					//	printf ("kills:"+kills);
-					//	printf ("deathLimit:"+deathLimit);
-					//	printf (isScheduled);
-					//	printf(enemies.size());
-
+//					printf(enemies.size());
+//					printf ("kills:"+kills);
+//					printf ("deathLimit:"+deathLimit);
+//					printf (isScheduled);
+//					printf(enemies.size());
 
 					if (enemies.size() == 0 && !isScheduled && kills >= deathLimit) {
 						level++;
@@ -472,12 +529,14 @@ public class Boxhead implements ApplicationListener {
 
 							if (enemies.get(i).isColliding(character,-18)){
 
-								//character.decreaseHealth();
-								character.setHealth(0);
-								//healthString = "";
-								//for (int k = 0; k < character.getHealth() /13; k++){
-								//	healthString+="|";
-								//}
+								//character.setHealth(0);
+								//Thread.sleep(2000);
+								
+								character.decreaseHealth();
+								healthString = "";
+								for (int k = 0; k < character.getHealth() /13; k++){
+									healthString+="|";
+								}
 							}
 							else {
 								enemies.get(i).move(character.getControl());
@@ -485,25 +544,28 @@ public class Boxhead implements ApplicationListener {
 
 							for (int j = 0; j < bullets.size(); j++) {
 								if (enemies.get(i).isColliding(bullets.get(j), 30)) {
-									//enemies.get(i).decreaseHealth();
-									enemies.get(i).setHealth(-1);
+									enemies.get(i).decreaseHealth();
+									//enemies.get(i).setHealth(-1);
 									bullets.remove(j);
 								}
 							}
 							if (enemies.get(i).getHealth() < 0){
 
-								Random rand = new Random();
+								
+								Item.createNewItem(Item.DOUBLE_SHOT, 
+										enemies.get(i).getEnemy().x, 
+										enemies.get(i).getEnemy().y);
+								
 
-								float distance = character.getDistance(enemies.get(i));
-								if (distance > 550) currentScore = 10;
-								else if (distance > 400) currentScore = 5;
-								else if (distance > 300) currentScore = 4;
-								else if (distance > 200) currentScore = 3;
-								else if (distance > 100) currentScore = 2;
-								else currentScore = 1;
-
+//								float distance = character.getDistance(enemies.get(i));
+//								if (distance > 550) currentScore = 10;
+//								else if (distance > 400) currentScore = 5;
+//								else if (distance > 300) currentScore = 4;
+//								else if (distance > 200) currentScore = 3;
+//								else if (distance > 100) currentScore = 2;
+//								else currentScore = 1;
+								currentScore = 1;
 								score += currentScore;
-								rand = null;
 								cex = enemies.get(i).getEnemy().x;
 								cey = enemies.get(i).getEnemy().y;
 								scoreUps.add(new ScoreUp(currentScore,cex,cey));
@@ -521,6 +583,12 @@ public class Boxhead implements ApplicationListener {
 
 					if (character.getHealth() <= 0){
 						game = false;
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						gameOver = true;
 					}
 				}
@@ -545,9 +613,9 @@ public class Boxhead implements ApplicationListener {
 
 				if (mainMenu){
 					singlePlayerBtn.setPressed(touchPos.x, touchPos.y);
-					multiplayerBtn.setPressed(touchPos.x, touchPos.y);
-					//options.setPressed(touchPos.x, touchPos.y);
-					signIn_OutBtn.setPressed(touchPos.x, touchPos.y);
+					leaderboardBtn.setPressed(touchPos.x, touchPos.y);
+					instructionsBtn.setPressed(touchPos.x, touchPos.y);
+					//signIn_OutBtn.setPressed(touchPos.x, touchPos.y);
 
 
 				}
@@ -568,36 +636,43 @@ public class Boxhead implements ApplicationListener {
 						singlePlayerBtn.setPressed(false);
 						mainMenu = false;
 						game = true;
-
+						start = System.currentTimeMillis();
+						current = System.currentTimeMillis();
 						
 					}
-					else if (multiplayerBtn.isReleased() ){
-						multiplayerBtn.setPressed(false);
+					else if (leaderboardBtn.isReleased() ){
+						leaderboardBtn.setPressed(false);
 						if (signedIn){
-							onlineMenu = true;
-							mainMenu = false;	
+							android.initiateLeaderboard();
+							//onlineMenu = true;
+							//mainMenu = false;	
+						}
+						else {
+							android.initiateSignIn();
 						}
 
 					}
-					//					else if (options.isReleased()){
-					//						options.setPressed(false);
-					//					}
-					else if (signIn_OutBtn.isReleased()){
-						signIn_OutBtn.setPressed(false);
-						if (!signedIn)android.initiateSignIn();
-
+					else if (instructionsBtn.isReleased()){
+						instructionsBtn.setPressed(false);
 					}
+//					else if (signIn_OutBtn.isReleased()){
+//						signIn_OutBtn.setPressed(false);
+//						if (!signedIn)android.initiateSignIn();
+//
+//					}
 
 				}
 				else if (gameOver){
-					if (prefs.getInteger("highscore") < score){
-						prefs.putInteger("highscore", score);
+					if (prefs.getInteger(HIGHSCORE_KEY) < score){
+						prefs.putInteger(HIGHSCORE_KEY, score);
+						android.submitHighscore(score);
 						prefs.flush();
 					}
 					if (replayBtn.isReleased()){
 						replayBtn.setPressed(false);
 						gameOver = false;
 						game = true;
+						resetGame();
 					}
 					else if (quitToMainBtn.isReleased()){
 						quitToMainBtn.setPressed(false);
@@ -637,7 +712,6 @@ public class Boxhead implements ApplicationListener {
 	}
 
 	NetworkThread nt = null;
-	Packet send = null, recieve = null;
 	public void startMultiplayerGame(InputStream is, OutputStream os, String npId){
 		nt = new NetworkThread(is, os, npId);
 		nt.start();

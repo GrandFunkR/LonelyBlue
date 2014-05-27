@@ -18,21 +18,21 @@ public class SocketClient {
 		this.networkPlayerId = npi;
 	}
 	
-	public void send (byte[] packet){
+	public void send (String message){
 		try {
-			os.write(packet);
+			os.write(message.getBytes());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public byte[] receive(){
+	public String receive(){
 		byte[] returnable = null;
 		//sit till new data
 		try {
 			is.read(returnable);
-			return returnable;
+			return new String(returnable);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -8,12 +8,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
+import com.google.android.gms.games.Game;
 import com.google.android.gms.games.GamesActivityResultCodes;
 import com.google.android.gms.games.GamesClient;
 import com.google.android.gms.games.multiplayer.Invitation;
@@ -28,63 +31,109 @@ import com.google.example.games.basegameutils.GameHelper;
 
 
 public class MainActivity extends AndroidApplication implements  
- AndroidAccessLayer, GameHelper.GameHelperListener, ConnectionCallbacks, RoomUpdateListener, RealTimeMessageReceivedListener, RoomStatusUpdateListener{
-	
+AndroidAccessLayer, GameHelper.GameHelperListener, ConnectionCallbacks, RoomUpdateListener, RealTimeMessageReceivedListener, RoomStatusUpdateListener{
+
 	final static int RC_SELECT_PLAYERS = 10000;
 	final static int RC_INVITATION_INBOX = 10001;
 	final static int RC_WAITING_ROOM = 10002;
+	final static int RC_LEADERBOARD = 10003;
+	
+	final static String LEADERBOARD_ID = "CgkI7dnOosYFEAIQAQ";
+	
 	private GameHelper gh;
 	private Boxhead bx;
 	private String mParticipantId;
 	public MainActivity(){
 		gh = new GameHelper(this);
 	}
-	
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-    	Log.i("pf", "simple sign in flow with GHL v4");  
-    	super.onCreate(savedInstanceState);
 
-        gh.setup(this, GameHelper.CLIENT_GAMES);
-        gh.onStart(this);
-    	gh.enableDebugLog(true, "pf");
-    	
-        AndroidApplicationConfiguration cfg = new AndroidApplicationConfiguration();
-        cfg.useGL20 = false;
-        bx = new Boxhead(Boxhead.platformCode.ANDROID, this);
-        initialize(bx, cfg);
-        
-         
-    }
-   
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		Log.i("pf", "simple sign in flow with GHL v4");  
+		super.onCreate(savedInstanceState);
+		
+		gh.setup(this, GameHelper.CLIENT_GAMES);
+		gh.onStart(this);
+		gh.enableDebugLog(true, "pf");
+
+		AndroidApplicationConfiguration cfg = new AndroidApplicationConfiguration();
+		cfg.useGL20 = false;
+		bx = new Boxhead(Boxhead.ANDROID, this);
+		initialize(bx, cfg);
+
+		final View decorView = getWindow().getDecorView();
+		int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_FULLSCREEN;
+		
+		decorView.setSystemUiVisibility(uiOptions);
+		decorView.setOnSystemUiVisibilityChangeListener
+		(new View.OnSystemUiVisibilityChangeListener() {
+			@Override
+			public void onSystemUiVisibilityChange(int visibility) {
+				// Note that system bars will only be "visible" if none of the
+				// LOW_PROFILE, HIDE_NAVIGATION, or FULLSCREEN flags are set.
+				if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+					// TODO: The system bars are visible. Make any desired
+					// adjustments to your UI, such as showing the action bar or
+					// other navigational controls.
+					int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+							| View.SYSTEM_UI_FLAG_FULLSCREEN;
+					
+					decorView.setSystemUiVisibility(uiOptions);
+					
+				} else {
+					// TODO: The system bars are NOT visible. Make any desired
+					// adjustments to your UI, such as hiding the action bar or
+					// other navigational controls.
+				}
+			}
+		});
+
+
+	}
+	 @Override
+	public void submitHighscore (int score){
+		gh.getGamesClient().submitScore(LEADERBOARD_ID, score);
+	}
+
 	@Override
 	public void onSignInFailed() {
-				Log.i("pf", "failed");	
+		Log.i("pf", "failed");	
 	}
 
 	private RoomConfig.Builder makeBasicRoomConfigBuilder() {
-	    return RoomConfig.builder(this)
-	            .setMessageReceivedListener(this)
-	            .setRoomStatusUpdateListener(this)
-	            .setSocketCommunicationEnabled(true);
+		return RoomConfig.builder(this)
+				.setMessageReceivedListener(this)
+				.setRoomStatusUpdateListener(this)
+				.setSocketCommunicationEnabled(true);
 	}
-	
+
 	@Override
 	public void onSignInSucceeded() {
-				bx.onSignedIn(true);
+		bx.onSignedIn(true);
 		Log.i("pf", "success");
-		
+
 		if (gh.getInvitationId() != null) {
-	        RoomConfig.Builder roomConfigBuilder =
-	            makeBasicRoomConfigBuilder();
-	        roomConfigBuilder.setInvitationIdToAccept(gh.getInvitationId());
-	        gh.getGamesClient().joinRoom(roomConfigBuilder.build());
+			RoomConfig.Builder roomConfigBuilder =
+					makeBasicRoomConfigBuilder();
+			roomConfigBuilder.setInvitationIdToAccept(gh.getInvitationId());
+			gh.getGamesClient().joinRoom(roomConfigBuilder.build());
 
-	        // prevent screen from sleeping during handshake
-	        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+			// prevent screen from sleeping during handshake
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-	        // go to game screen
-	    }
+			// go to game screen
+		}
+	}
+	@Override
+	public void initiateLeaderboard(){
+		runOnUiThread(new Runnable(){
+			@Override
+			public void run (){
+				Intent intent = gh.getGamesClient().getAllLeaderboardsIntent();
+				startActivityForResult(intent, RC_LEADERBOARD);
+			}
+		});
 	}
 
 	@Override
@@ -99,7 +148,7 @@ public class MainActivity extends AndroidApplication implements
 			}
 		});
 	}
-	
+
 	@Override
 	public void initiateInviteInbox(){
 		runOnUiThread(new Runnable(){
@@ -112,190 +161,190 @@ public class MainActivity extends AndroidApplication implements
 
 	@Override
 	public void onConnected(Bundle arg0) {
-		
+
 		Log.i("pf", "success");
-		
+
 	}
 
 	@Override
 	public void onDisconnected() {
-		
+
 		Log.i("pf", "failure");
 		bx.onDisconnected();
-		
+
 	}
 
 	@Override
 	public void initiateSignIn() {
-				runOnUiThread(new Runnable (){
-        	public void run(){
-        		gh.beginUserInitiatedSignIn();		
-        	}
-        });
+		runOnUiThread(new Runnable (){
+			public void run(){
+				gh.beginUserInitiatedSignIn();		
+			}
+		});
 	}
-	
+
 	@Override
 	public boolean isSignedIn(){
 		return gh.isSignedIn();
 	}
-	
+
 	protected void onActivityResult(int request, int response, Intent data){
 		super.onActivityResult(request, response, data);
 		gh.onActivityResult(request, response, data);
-		
+
 		if (request == RC_SELECT_PLAYERS) {
-	        if (response != Activity.RESULT_OK) {
-	            // user canceled
-	            return;
-	        }
+			if (response != Activity.RESULT_OK) {
+				// user canceled
+				return;
+			}
 
-	        // get the invitee list
-	        Bundle extras = data.getExtras();
-	        final ArrayList<String> invitees =
-	            data.getStringArrayListExtra(GamesClient.EXTRA_PLAYERS);
+			// get the invitee list
+			Bundle extras = data.getExtras();
+			final ArrayList<String> invitees =
+					data.getStringArrayListExtra(GamesClient.EXTRA_PLAYERS);
 
-	        // get automatch criteria
-	        Bundle autoMatchCriteria = null;
-	        int minAutoMatchPlayers =
-	            data.getIntExtra(GamesClient.EXTRA_MIN_AUTOMATCH_PLAYERS, 0);
-	        int maxAutoMatchPlayers =
-	            data.getIntExtra(GamesClient.EXTRA_MAX_AUTOMATCH_PLAYERS, 0);
+			// get automatch criteria
+			Bundle autoMatchCriteria = null;
+			int minAutoMatchPlayers =
+					data.getIntExtra(GamesClient.EXTRA_MIN_AUTOMATCH_PLAYERS, 0);
+			int maxAutoMatchPlayers =
+					data.getIntExtra(GamesClient.EXTRA_MAX_AUTOMATCH_PLAYERS, 0);
 
-	        if (minAutoMatchPlayers > 0) {
-	            autoMatchCriteria =
-	                RoomConfig.createAutoMatchCriteria(
-	                    minAutoMatchPlayers, maxAutoMatchPlayers, 0);
-	        } else {
-	            autoMatchCriteria = null;
-	        }
+			if (minAutoMatchPlayers > 0) {
+				autoMatchCriteria =
+						RoomConfig.createAutoMatchCriteria(
+								minAutoMatchPlayers, maxAutoMatchPlayers, 0);
+			} else {
+				autoMatchCriteria = null;
+			}
 
-	        // create the room and specify a variant if appropriate
-	        RoomConfig.Builder roomConfigBuilder = makeBasicRoomConfigBuilder();
-	        roomConfigBuilder.addPlayersToInvite(invitees);
-	        if (autoMatchCriteria != null) {
-	            roomConfigBuilder.setAutoMatchCriteria(autoMatchCriteria);
-	        }
-	        RoomConfig roomConfig = roomConfigBuilder.build();
-	        gh.getGamesClient().createRoom(roomConfig);
+			// create the room and specify a variant if appropriate
+			RoomConfig.Builder roomConfigBuilder = makeBasicRoomConfigBuilder();
+			roomConfigBuilder.addPlayersToInvite(invitees);
+			if (autoMatchCriteria != null) {
+				roomConfigBuilder.setAutoMatchCriteria(autoMatchCriteria);
+			}
+			RoomConfig roomConfig = roomConfigBuilder.build();
+			gh.getGamesClient().createRoom(roomConfig);
 
-	        // prevent screen from sleeping during handshake
-	        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-	    }
-		
+			// prevent screen from sleeping during handshake
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
+
 		if (request == RC_WAITING_ROOM) {
-	        if (response == Activity.RESULT_OK) {
-	            // (start game)
-	        	RealTimeSocket sck = gh.getGamesClient().getRealTimeSocketForParticipant(mRoomId, "");
-	    		try {
-	    			bx.startMultiplayerGame(sck.getInputStream(), sck.getOutputStream(), "");
-	    		} catch (IOException e) {
-	    			// TODO Auto-generated catch block
-	    			e.printStackTrace();
-	    		}
-	        }
-	        else if (response == Activity.RESULT_CANCELED) {
-	            // Waiting room was dismissed with the back button. The meaning of this
-	            // action is up to the game. You may choose to leave the room and cancel the
-	            // match, or do something else like minimize the waiting room and
-	            // continue to connect in the background.
+			if (response == Activity.RESULT_OK) {
+				// (start game)
+				RealTimeSocket sck = gh.getGamesClient().getRealTimeSocketForParticipant(mRoomId, "");
+				try {
+					bx.startMultiplayerGame(sck.getInputStream(), sck.getOutputStream(), "");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else if (response == Activity.RESULT_CANCELED) {
+				// Waiting room was dismissed with the back button. The meaning of this
+				// action is up to the game. You may choose to leave the room and cancel the
+				// match, or do something else like minimize the waiting room and
+				// continue to connect in the background.
 
-	            // in this example, we take the simple approach and just leave the room:
-	            gh.getGamesClient().leaveRoom(this, mRoomId);
-	            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-	            //make toast that says you left the room
-	            
-	        }
-	        else if (response == GamesActivityResultCodes.RESULT_LEFT_ROOM) {
-	            // player wants to leave the room.
-	            gh.getGamesClient().leaveRoom(this, mRoomId);
-	            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-	        }
-	    }
+				// in this example, we take the simple approach and just leave the room:
+				gh.getGamesClient().leaveRoom(this, mRoomId);
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+				//make toast that says you left the room
+
+			}
+			else if (response == GamesActivityResultCodes.RESULT_LEFT_ROOM) {
+				// player wants to leave the room.
+				gh.getGamesClient().leaveRoom(this, mRoomId);
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+			}
+		}
 		if (request == RC_INVITATION_INBOX) {
-	        if (response != Activity.RESULT_OK) {
-	            // canceled
-	            return;
-	        }
+			if (response != Activity.RESULT_OK) {
+				// canceled
+				return;
+			}
 
-	        // get the selected invitation
-	        Bundle extras = data.getExtras();
-	        Invitation invitation =
-	            extras.getParcelable(GamesClient.EXTRA_INVITATION);
+			// get the selected invitation
+			Bundle extras = data.getExtras();
+			Invitation invitation =
+					extras.getParcelable(GamesClient.EXTRA_INVITATION);
 
-	        // accept it!
-	        RoomConfig roomConfig = makeBasicRoomConfigBuilder()
-	                .setInvitationIdToAccept(invitation.getInvitationId())
-	                .build();
-	        gh.getGamesClient().joinRoom(roomConfig);
+			// accept it!
+			RoomConfig roomConfig = makeBasicRoomConfigBuilder()
+					.setInvitationIdToAccept(invitation.getInvitationId())
+					.build();
+			gh.getGamesClient().joinRoom(roomConfig);
 
-	        // prevent screen from sleeping during handshake
-	        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+			// prevent screen from sleeping during handshake
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-	        // go to game screen
-	        RealTimeSocket sck = gh.getGamesClient().getRealTimeSocketForParticipant(mRoomId, mParticipantId);
-    		try {
-    			bx.startMultiplayerGame(sck.getInputStream(), sck.getOutputStream(), mParticipantId);
-    		} catch (IOException e) {
-    			// TODO Auto-generated catch block
-    			e.printStackTrace();
-    		}
-	    }
-		
+			// go to game screen
+			RealTimeSocket sck = gh.getGamesClient().getRealTimeSocketForParticipant(mRoomId, mParticipantId);
+			try {
+				bx.startMultiplayerGame(sck.getInputStream(), sck.getOutputStream(), mParticipantId);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
 	}
 
 	private String mRoomId;
-	
+
 	@Override
 	public void onRoomCreated(int statusCode, Room room) {
-		
-		Log.i("pf", "onRoomCreated_StatusCode: "+statusCode);
-	    if (statusCode != GamesClient.STATUS_OK) {
-	        // let screen go to sleep
-	        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-	        // show error message, return to main screen.
-	        Toast t = Toast.makeText(this.getApplicationContext(), "There was an error creating the room.", 5);
-	        t.show();
-	        return;
-	    } 
-	    else if (statusCode == GamesClient.STATUS_OK) {
-	    	mRoomId = room.getRoomId();
-	        Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
-		    startActivityForResult(i, RC_WAITING_ROOM);   
-	    }
+		Log.i("pf", "onRoomCreated_StatusCode: "+statusCode);
+		if (statusCode != GamesClient.STATUS_OK) {
+			// let screen go to sleep
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+			// show error message, return to main screen.
+			Toast t = Toast.makeText(this.getApplicationContext(), "There was an error creating the room.", 5);
+			t.show();
+			return;
+		} 
+		else if (statusCode == GamesClient.STATUS_OK) {
+			mRoomId = room.getRoomId();
+			Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
+			startActivityForResult(i, RC_WAITING_ROOM);   
+		}
 	}
 
 	@Override
 	public void onJoinedRoom(int statusCode, Room room) {
 		Log.i("pf", "onJoinedRoom");
-	    if (statusCode != GamesClient.STATUS_OK) {
-	        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-	        Toast t = Toast.makeText(this.getApplicationContext(), "There was an error joining the room.", 5);
-	        t.show();
-	        
-	        return;
-	    }
-	    else if (statusCode == GamesClient.STATUS_OK) {
-	    	mRoomId = room.getRoomId();    
-		    Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
-		    startActivityForResult(i, RC_WAITING_ROOM);
-	    }
-	    
+		if (statusCode != GamesClient.STATUS_OK) {
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+			Toast t = Toast.makeText(this.getApplicationContext(), "There was an error joining the room.", 5);
+			t.show();
+
+			return;
+		}
+		else if (statusCode == GamesClient.STATUS_OK) {
+			mRoomId = room.getRoomId();    
+			Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
+			startActivityForResult(i, RC_WAITING_ROOM);
+		}
+
 	}
 
 	@Override
 	public void onRoomConnected(int statusCode, Room room) {
 		Log.i("pf", "onRoomConnected");
-	    if (statusCode != GamesClient.STATUS_OK) {
-	        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-	        Toast t = Toast.makeText(this.getApplicationContext(), "There was an error connecting to the room.", 5);
-	        t.show();
-	    } else if (statusCode == GamesClient.STATUS_OK) {
-	    	mRoomId = room.getRoomId();
-	        Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
-		    startActivityForResult(i, RC_WAITING_ROOM);
-	        
-	    }
+		if (statusCode != GamesClient.STATUS_OK) {
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+			Toast t = Toast.makeText(this.getApplicationContext(), "There was an error connecting to the room.", 5);
+			t.show();
+		} else if (statusCode == GamesClient.STATUS_OK) {
+			mRoomId = room.getRoomId();
+			Intent i = gh.getGamesClient().getRealTimeWaitingRoomIntent(room, 2);
+			startActivityForResult(i, RC_WAITING_ROOM);
+
+		}
 	}
 
 	@Override
@@ -333,9 +382,9 @@ public class MainActivity extends AndroidApplication implements
 	@Override
 	public void onPeerDeclined(Room arg0, List<String> arg1) {
 		Log.i("pf", "onPeerDeclined");
-        gh.getGamesClient().leaveRoom(this, mRoomId);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
+		gh.getGamesClient().leaveRoom(this, mRoomId);
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 	}
 
 	@Override
@@ -353,8 +402,8 @@ public class MainActivity extends AndroidApplication implements
 	@Override
 	public void onPeerLeft(Room arg0, List<String> arg1) {
 		Log.i("pf", "onPeerLeft");
-        gh.getGamesClient().leaveRoom(this, mRoomId);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		gh.getGamesClient().leaveRoom(this, mRoomId);
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 	}
 
@@ -362,29 +411,29 @@ public class MainActivity extends AndroidApplication implements
 	public void onPeersConnected(Room arg0, List<String> arg1) {
 		Log.i("pf", "onPeersConnected");
 		mParticipantId = arg1.get(0);
-		
+
 	}
 
 	@Override
 	public void onPeersDisconnected(Room arg0, List<String> arg1) {
 		Log.i("pf", "onPeersDisconnected");
-        gh.getGamesClient().leaveRoom(this, mRoomId);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		
+		gh.getGamesClient().leaveRoom(this, mRoomId);
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 	}
 
 	@Override
 	public void onRoomAutoMatching(Room arg0) {
-				
+
 	}
 
 	@Override
 	public void onRoomConnecting(Room arg0) {
-				
+
 	}
 
 
 
-	
+
 
 }

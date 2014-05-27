@@ -7,7 +7,7 @@ import com.badlogic.gdx.math.Circle;
 public class Bullet extends Collidable {
 	
 	private Circle control;
-	private static Texture image = new Texture (Gdx.files.internal("testing/bullet.png"));
+	private static Texture image = new Texture (Gdx.files.internal("sprites/bullet.png"));
 	private double speedX,speedY;
 	
 	public Bullet(float x, float y, double speedX, double speedY){

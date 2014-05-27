@@ -6,5 +6,7 @@ public interface AndroidAccessLayer {
 	public abstract boolean isSignedIn();
 	public abstract void initiateRoomCreation();
 	public abstract void initiateInviteInbox();
+	public abstract void initiateLeaderboard();
+	public abstract void submitHighscore(int score);
 
 }

@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Explosion {
 	
-	private final static String EXPLODE_SHEET_DIR = "testing/explode.png";
+	private final static String EXPLODE_SHEET_DIR = "sprites/explode.png";
 	
 	private float x,y,stateTime;
 	private TextureRegion currentFrame;

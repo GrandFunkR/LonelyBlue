@@ -11,18 +11,14 @@ import com.badlogic.gdx.math.Circle;
 
 public class Character extends Collidable implements Serializable{
 
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -9008207712071753129L;
 	final static double CHARACTER_SPEED = 0.1;
 	final static int CHARACTER_HEALTH = 640;
 	
-	
-	
 	private Circle character;
 	private int health;
+	private Item currentItem;
+	
 	public Character(){
 		super.setControl(new Circle());
 		character = super.getControl();
@@ -30,6 +26,7 @@ public class Character extends Collidable implements Serializable{
 		character.x = 1280 / 2;
 		character.y = 720 / 2;
 		setHealth(CHARACTER_HEALTH);
+		currentItem = null;
 		
 	}
 	
@@ -97,7 +94,8 @@ public class Character extends Collidable implements Serializable{
 	}
 	
 	public void decreaseHealth(){
-		health--;
+		if (!Boxhead.DEVELOPER)
+			health--;
 	}
 	
 	public void setPosition (float x, float y){
@@ -118,15 +116,30 @@ public class Character extends Collidable implements Serializable{
 		else if (cy > oy) diffY = cy - oy;
 		
 		return (float) (Math.sqrt((double)(diffX*diffX + diffY*diffY)));
-		 
-		
+
+	}
+	
+	public void pickUp(Item n){
+		if (this.currentItem == null){
+			this.currentItem = n;	
+		}
+	}
+	
+	public void expireCurrentItem(){
+		if (this.currentItem != null){
+			if (System.currentTimeMillis() - this.currentItem.getPickupTime() > 10000) this.currentItem = null;
+		}
+	}
+	
+	public Item getCurrentItem(){
+		return this.currentItem;
 	}
 	
 	public String toString(){
 		return "CHARACTER;" + character.x + ";" + character.y;
 	}
 	
-	public void interpret(String s){
+	public void update(String s){
 		String[] result = s.split(";");
 		this.setPosition(Float.parseFloat(result[0]), Float.parseFloat(result[1]));
 		

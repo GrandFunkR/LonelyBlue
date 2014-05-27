@@ -13,18 +13,20 @@
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="false" key="wholeword"/>
-		<item value="" key="selection"/>
+		<item value="platformCode" key="selection"/>
 		<list key="findhistory">
+			<item value="platformCode"/>
+			<item value="resetGame"/>
+			<item value="instructions"/>
+			<item value="options"/>
+			<item value="optinos"/>
+			<item value="multiplayerBtn"/>
 			<item value="regImg"/>
 			<item value="Timer.sche"/>
-			<item value="resetGame()"/>
-			<item value="currentTouch"/>
-			<item value="getHealth"/>
-			<item value="32"/>
-			<item value="64"/>
-			<item value="isColliding"/>
 		</list>
 		<list key="replacehistory">
+			<item value="instructionsBtn"/>
+			<item value="leaderboardBtn"/>
 		</list>
 	</section>
 </section>

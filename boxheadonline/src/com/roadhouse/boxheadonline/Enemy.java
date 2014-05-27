@@ -11,9 +11,9 @@ public class Enemy extends Collidable {
 	private Circle enemy;
 	private double speedX, speedY;
 
-	final static int HEALTH_MAX = 15;
-	final static int MAX_SPEED = 5;
-	final static int MIN_SPEED = 1;
+	final static int HEALTH_MAX = 4;
+	final static int MAX_SPEED = Boxhead.ENEMY_MAX_SPEED;
+	final static int MIN_SPEED = Boxhead.ENEMY_MIN_SPEED;
 	private int health;
 	private double direction;
 
@@ -28,7 +28,7 @@ public class Enemy extends Collidable {
 		speedY = 0.0;
 
 		health =HEALTH_MAX;
-		setEneImg(new Texture (Gdx.files.internal("testing/enemy.png")));
+		setEneImg(new Texture (Gdx.files.internal("sprites/enemy.png")));
 	}
 
 	public static Enemy enemySpawn(int level){
@@ -98,6 +98,7 @@ public class Enemy extends Collidable {
 	}
 
 	public void decreaseHealth(){
+		enemy.radius+=5;
 		health--;
 	}
 

@@ -31,11 +31,11 @@ public class Joypad {
 		knob.x = 250;
 		knob.y = 500;
 
-		padImg = new Texture(Gdx.files.internal("testing/fulljoy.png"));
+		padImg = new Texture(Gdx.files.internal("sprites/fulljoy.png"));
 		if (blueKnob) {
-			knobImg = new Texture(Gdx.files.internal("testing/joycentre.png"));
+			knobImg = new Texture(Gdx.files.internal("sprites/joycentre.png"));
 		} else {
-			knobImg = new Texture(Gdx.files.internal("testing/joycentreFire.png"));
+			knobImg = new Texture(Gdx.files.internal("sprites/joycentreFire.png"));
 		}
 	}
 
