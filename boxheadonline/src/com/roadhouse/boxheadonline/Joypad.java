@@ -29,7 +29,7 @@ public class Joypad {
 		knob = new Circle();
 		knob.radius = 64;
 		knob.x = 250;
-		knob.y = 500;
+		knob.y = 500;a
 
 		padImg = new Texture(Gdx.files.internal("sprites/fulljoy.png"));
 		if (blueKnob) {

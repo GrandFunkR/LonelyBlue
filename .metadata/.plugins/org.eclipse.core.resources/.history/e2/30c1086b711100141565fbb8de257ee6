@@ -1,0 +1,117 @@
+package com.roadhouse.boxheadonline;
+
+import java.util.ArrayList;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
+import com.badlogic.gdx.math.Circle;
+
+public class RadioButtonSet {
+
+	private class RadioButton {
+		private boolean selected;
+		private String text;
+		private Circle button;
+
+		private boolean pressed;
+		
+		FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Montserrat-Bold.ttf"));	
+		BitmapFont small = _generator.generateFont(20, Boxhead.FONT_CHARACTERS, true);
+
+		public RadioButton (float x, float y, String text){
+			this.button = new Circle();
+			this.button.radius = 30;
+			this.button.x = x;
+			this.button.y = y;
+			this.text = text;
+			selected = false;
+
+			pressed = false;
+		}
+
+		public boolean checkPressed (float x, float y){
+			float r = (float) button.radius;
+			boolean p = x > button.x - r && x < button.x + r && y < button.y + r && y > button.y - r;
+			Boxhead.printf(y);
+			
+			if (p){
+				this.selected = true;
+				return true;
+			}
+			return false;
+		}
+
+		public void clear(){
+			this.selected = false;
+		}
+		
+		public void drawText(SpriteBatch batch){
+			small.draw(batch, this.text, this.button.x - small.getBounds(this.text).width/2, this.button.y + small.getBounds(this.text).height/2);
+		}
+
+		public void draw (ShapeRenderer sr){
+			if (selected){
+				sr.begin(ShapeType.FilledCircle);
+				sr.setColor(1, 1, 1, 0);
+				sr.filledCircle(this.button.x, 720-this.button.y, this.button.radius-3);
+				sr.end();
+			}
+			sr.begin(ShapeType.Circle);
+			sr.setColor(0, 1, 1, 0);
+			sr.circle(this.button.x, 720-this.button.y, this.button.radius);
+			sr.end();
+
+		}
+
+	}
+
+	private ArrayList<RadioButton> buttons;
+	private String text;
+	
+	FreeTypeFontGenerator _generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Montserrat-Bold.ttf"));	
+	BitmapFont big = _generator.generateFont(45, Boxhead.FONT_CHARACTERS, true);
+
+	public RadioButtonSet (float x, float y,String text, String[] texts){
+		buttons = new ArrayList<RadioButton>();
+		this.text = text;
+		for (int i = 0 ;i < 3 ; i ++){
+			buttons.add(new RadioButton (x+(i*100),y, texts[i]));
+		}
+	}
+
+	public void checkPressed(float x, float y ){
+		boolean hit = false;
+		int which = -1;
+		for (int i = 0 ; i < 3 ; i ++){
+			if(buttons.get(i).checkPressed(x,y)){
+				which = i;
+				hit = true;
+			}
+		}
+		
+		if (hit){
+			for (int i = 0 ; i < 3 ; i ++){
+				if (i != which){
+					buttons.get(i).clear();
+				}
+			}
+		}
+	}
+	
+	public void drawText (SpriteBatch batch){
+		
+	}
+	
+	public void draw (ShapeRenderer sr){
+		for (int i = 0 ; i < 3 ; i ++){
+			buttons.get(i).draw(sr);
+		}
+	}
+
+
+
+}

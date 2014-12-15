@@ -10,6 +10,10 @@
 	<classpathentry kind="lib" path="libs/gdx-freetype.jar"/>
 	<classpathentry kind="lib" path="libs/gdx-freetype-natives.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/BaseGameUtils"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/google-play-services_lib"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/google-play-services_lib">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="google-play-services_lib"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

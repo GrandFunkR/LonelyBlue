@@ -11,7 +11,7 @@
 	<classpathentry kind="lib" path="/boxheadonline/libs/gdx-freetype-natives.jar"/>
 	<classpathentry kind="lib" path="libs/java_websocket.jar"/>
 	<classpathentry kind="lib" path="libs/gamooga.jar"/>
-	<classpathentry kind="lib" path="/Users/Sameid/Downloads/adt-bundle-mac-x86_64-20131030/sdk/platforms/android-19/android.jar"/>
+	<classpathentry kind="lib" path="/Users/Sameid/Downloads/adt-old/sdk/platforms/android-19/android.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/BaseGameUtils"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/google-play-services_lib"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>

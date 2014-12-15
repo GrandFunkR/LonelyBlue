@@ -58,7 +58,8 @@ public class Boxhead implements ApplicationListener {
 
 	OrthographicCamera camera;
 	SpriteBatch batch;
-
+	ShapeRenderer shapeRenderer;
+	
 	BitmapFont font, huge, _font;
 	FreeTypeFontGenerator generator;
 
@@ -90,28 +91,36 @@ public class Boxhead implements ApplicationListener {
 	boolean pause = false;
 	boolean mainMenu = true;
 	boolean onlineMenu = false;
+	boolean optionsMenu = false;
 
 	boolean signedIn = false;
 	boolean isServer = false;
 	boolean multiplayerGame = false;
 	
 	boolean tutorial = true;
-
+	boolean moving = false;
+	boolean shooting = false;
+	
 	Button replayBtn;
 	Button quitToMainBtn;
 
 	Button singlePlayerBtn;
 	Button leaderboardBtn;
 	//Button signIn_OutBtn;
-	Button instructionsBtn;
-	
+	Button multiplayerBtn;
+	Button optionsBtn;
 
 	Button invitePlayersBtn;
 	Button showInvitationsBtn;
 	Button backBtn;
+	
+	Button backFromOptionsBtn;
 
 	Music music;
-
+	RadioButtonSet options_difficulty;
+	RadioButtonSet options_sound;
+	
+	
 	double speedX, speedY;
 	int level;
 	int score;
@@ -165,13 +174,15 @@ public class Boxhead implements ApplicationListener {
 		music = Gdx.audio.newMusic(Gdx.files.internal("audio/track1.mp3"));
 		music.setVolume(0.5f);
 		music.setLooping(true);
-		//music.play(); 
+//		if (!DEVELOPER)
+//		music.play(); 
 
 		Texture.setEnforcePotImages(false);
 
 		camera = new OrthographicCamera();
 		camera.setToOrtho(true, SCREEN_WIDTH, SCREEN_HEIGHT);
 		batch = new SpriteBatch();
+		shapeRenderer = new ShapeRenderer();
 
 		level = 1;
 		character = new Character();
@@ -197,19 +208,27 @@ public class Boxhead implements ApplicationListener {
 		for (int i = 0 ; i < character.getHealth() /13; i++){
 			healthString +="|";
 		}
-
-		replayBtn = new Button (555, 200, "REPLAY", Button.ORANGE);
-		quitToMainBtn = new Button (555, 338+3, "BACK", Button.NAVY_BLUE);
-		singlePlayerBtn = new Button (555, 200, "SINGLE PLAYER", Button.LIGHT_BLUE);
-		leaderboardBtn = new Button (555, 338+3, "LEADERBOARD", Button.RED);
-		instructionsBtn = new Button (555, 338+138+6, "INSTRUCTIONS", Button.PURPLE);
-		//signIn_OutBtn = new Button (0,535, "SIGN IN", Button.LIGHT_GREY);
+		int _t = (1280/2)-(640/2);
+		replayBtn = new Button (_t, 200, "REPLAY", Button.ORANGE);
+		quitToMainBtn = new Button (_t, 338+3, "BACK", Button.NAVY_BLUE);
 		
-//
-//		invitePlayersBtn = new Button (800, 54, "INVITE PLAYERS", Button.ORANGE);
-//		showInvitationsBtn = new Button (800, 149, "SHOW INVITATIONS", Button.NAVY_BLUE);
-//		backBtn = new Button (800,244, "BACK", Button.LIGHT_PURPLE);
+		singlePlayerBtn = new Button (10, 250, "SINGLE PLAYER", Button.LIGHT_BLUE);
+		multiplayerBtn = new Button (645, 250, "MULTIPLAYER", Button.RED);
+		leaderboardBtn = new Button (10, 250+140, "LEADERBOARD", Button.PURPLE);
+		optionsBtn = new Button (645, 250+140, "SETTINGS", Button.GREEN);
+		//signIn_OutBtn = new Button (0,535, "SIGN IN", Button.LIGHT_GREY);
+	
+		invitePlayersBtn = new Button (_t, 200, "INVITE PLAYERS", Button.ORANGE);
+		showInvitationsBtn = new Button (_t, 338+3, "SHOW INVITATIONS", Button.NAVY_BLUE);
+		backBtn = new Button (_t,338+138+6, "BACK", Button.LIGHT_PURPLE);
 
+		String[] texts = {"EASY", "MEDIUM", "HARD"};
+		options_difficulty = new RadioButtonSet(400, 250, "DIFFICULTY", texts,1);
+		String[] texts2 = {"ON", "OFF"};
+		options_sound = new RadioButtonSet(400, 400, "SOUND", texts2, 0);
+		
+		backFromOptionsBtn = new Button(600, 550, "BACK", Button.ORANGE);
+		
 		deathLimit = 20;
 	}
 
@@ -236,6 +255,13 @@ public class Boxhead implements ApplicationListener {
 	long current = 0;
 	long elapsed = 0;
 	long changed = 0;
+	
+	long grabed = 0;
+	long g2 = 0;
+	
+	boolean moved = false;
+	boolean shot = false;
+	
 	@Override
 	public void render() {
 		current = System.currentTimeMillis();
@@ -250,6 +276,8 @@ public class Boxhead implements ApplicationListener {
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
 		camera.update();
 		batch.setProjectionMatrix(camera.combined);
+		
+		
 		batch.begin();
 		
 		
@@ -259,19 +287,52 @@ public class Boxhead implements ApplicationListener {
 			if (!tapToStart){
 				//draw initial game play stuff
 				tapToStart = currentTouchOne || currentTouchTwo;
-				resetGame();
+//				resetGame();
 			}
 			
 			if (tutorial){
 
-//				elapsed = (current - start);
-//				changed = elapsed;
-//
-//				if (changed > 500) font.draw(batch, "How", 500, 200);
-//				if (changed > 1000) font.draw(batch, "How to", 500, 200);
-//				if (changed > 1500) font.draw(batch, "How to play...", 500, 200);
-//				if (changed > 2000) currentTouchOne = true;
+				elapsed = (current - start);
+				changed = elapsed;
+				long _ = changed;
+				if (moving) moved = true;
+				if (shooting) shot = true;
 				
+				if (_ > 500 && _ < 1500) font.draw(batch, "How", 500, 200);
+				if (_ > 750 && _ < 1500) font.draw(batch, "How to", 500, 200);
+				if (_ > 1000 && _ < 1500) font.draw(batch, "How to play...", 500, 200);
+				
+				if (_ > 1500 && !moved) font.draw(batch, "TAP", 150, 400);
+				if (_ > 1750 && !moved) font.draw(batch, "TAP &", 150, 400);
+				if (_ > 2000 && !moved) font.draw(batch, "TAP & HOLD", 150, 400);
+				if (_ > 2250 && !moved) font.draw(batch, "... the left side to move", 150, 450);
+				
+				if (moved && grabed == 0){
+					grabed = _;
+				}
+
+				if (_ -grabed > 500 && moved && !shot) font.draw(batch, "TAP", 900, 400);
+				if (_ -grabed > 750 && moved && !shot) font.draw(batch, "TAP &", 900, 400);
+				if (_ -grabed > 1000 && moved && !shot) font.draw(batch, "TAP & HOLD", 900, 400);
+				if (_ -grabed > 1250 && moved && !shot) font.draw(batch, "... the right side to shoot", 600, 450);
+				
+				if (shot && g2 == 0){
+					g2 = _;
+				}
+				
+				if(moved && shot){
+					long __ = _ - g2;
+					if (__ > 0 && __ < 1500) font.draw(batch, "GET READY!", 600, 360);
+					if (__ > 1500 && __ < 2500) font.draw(batch, "3", 630, 360);
+					if (__ > 2500 && __ < 3500) font.draw(batch, "2", 630, 360);
+					if (__ > 3500 && __ < 4500) font.draw(batch, "1", 630, 360);
+					if (__ > 4500 && __ < 5500) font.draw(batch, "GO!", 630, 360);
+					if (__ > 5500 && __ < 6500) {
+						tutorial = false;
+						spawnEnemies();
+					}
+					
+				}
 				
 			}
 
@@ -296,7 +357,7 @@ public class Boxhead implements ApplicationListener {
 
 			}
 
-			Item.drawItems(batch);
+			//Item.drawItems(batch);
 			
 			for (int i = 0; i < enemies.size(); i++) {
 				Enemy current = enemies.get(i);
@@ -339,15 +400,15 @@ public class Boxhead implements ApplicationListener {
 				//else batch.draw(mainMenuImg_signedOut, 0, 0, 1280, 720, 0, 0, 1280, 720, false, true);
 //				batch.draw(profileNameBlock, 0,440, Button.BUTTON_WIDTH, Button.BUTTON_HEIGHT);
 //				batch.draw(profileIcon, 0, 440);
-				huge.draw(batch, ".LONELY BLUE", 40, 40);
-				font.draw(batch, prefs.getString("name"), 130, 475);
-
-				_font.draw(batch, Integer.toString(prefs.getInteger(HIGHSCORE_KEY)), 130, 600);
+				huge.draw(batch, ".LONELY BLUE", 65, 80);
+//				font.draw(batch, prefs.getString("name"), 130, 475);
+//				_font.draw(batch, Integer.toString(prefs.getInteger(HIGHSCORE_KEY)), 130, 600);
 
 				singlePlayerBtn.drawButton(batch);
 				leaderboardBtn.drawButton(batch);
-				instructionsBtn.drawButton(batch);
+				multiplayerBtn.drawButton(batch);
 				//signIn_OutBtn.drawButton(batch);
+				optionsBtn.drawButton(batch);
 
 			}
 			else if (gameOver){
@@ -357,14 +418,28 @@ public class Boxhead implements ApplicationListener {
 
 			}
 			else if (onlineMenu){
-				//invitePlayersBtn.drawButton(batch);
-				//showInvitationsBtn.drawButton(batch);
-				//backBtn.drawButton(batch);
-
+				huge.draw(batch, "MULTIPLAYER", 40, 40);
+				invitePlayersBtn.drawButton(batch);
+				showInvitationsBtn.drawButton(batch);
+				backBtn.drawButton(batch);
+			}
+			else if(optionsMenu){
+				huge.draw(batch, "SETTINGS", 40, 40);
+				options_difficulty.drawText (batch);
+				options_sound.drawText (batch);
+				backFromOptionsBtn.drawButton(batch);
+				
 			}
 		}
 		// End drawing to batch<SpriteBatch>
 		batch.end();
+		
+		if (!game){
+			if(optionsMenu){
+				options_difficulty.draw (shapeRenderer);
+				options_sound.draw (shapeRenderer);
+			}
+		}
 
 		////////////////////////////////////////////////////************************////////////////////////////
 
@@ -424,16 +499,18 @@ public class Boxhead implements ApplicationListener {
 						mover.adjustMagnitude(touchLeft.x, touchLeft.y);
 						// move character according to mover<Joypad> x/y differences
 						character.moveCharacter(mover.getxDiff(), mover.getyDiff());
+						moving = true;
 
 					}
 					else {
 						mover.resetJoypad();
 						currentTouchOne = false;
-						character.decreaseHealth();
-						healthString = "";
-						for (int k = 0; k < character.getHealth() /13; k++){
-							healthString+="|";
-						}
+//						character.decreaseHealth();
+//						healthString = "";
+//						for (int k = 0; k < character.getHealth() /13; k++){
+//							healthString+="|";
+//						}
+						moving = false;
 					}
 
 					if (Gdx.input.isTouched(right)){
@@ -463,11 +540,13 @@ public class Boxhead implements ApplicationListener {
 										character.getControl().y - 8, speedX *-1, speedY *-1));
 							}
 						}
+						shooting = true;
 
 					}
 					else {
 						shooter.resetJoypad();
 						currentTouchTwo = false;
+						shooting = false;
 					}
 				}
 //				else if (platform == Boxhead.DESKTOP){
@@ -477,9 +556,6 @@ public class Boxhead implements ApplicationListener {
 //						Vector3 t1 = new Vector3();
 //						t1.set(Gdx.input.getX(0), Gdx.input.getY(0), 0);
 //						camera.unproject(t1);
-//						
-//						
-//
 //					} 
 //				}
 				
@@ -583,12 +659,12 @@ public class Boxhead implements ApplicationListener {
 
 					if (character.getHealth() <= 0){
 						game = false;
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+//						try {
+//							Thread.sleep(2000);
+//						} catch (InterruptedException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//						}
 						gameOver = true;
 					}
 				}
@@ -614,10 +690,9 @@ public class Boxhead implements ApplicationListener {
 				if (mainMenu){
 					singlePlayerBtn.setPressed(touchPos.x, touchPos.y);
 					leaderboardBtn.setPressed(touchPos.x, touchPos.y);
-					instructionsBtn.setPressed(touchPos.x, touchPos.y);
+					multiplayerBtn.setPressed(touchPos.x, touchPos.y);
 					//signIn_OutBtn.setPressed(touchPos.x, touchPos.y);
-
-
+					optionsBtn.setPressed(touchPos.x,  touchPos.y);
 				}
 				else if (gameOver){
 					replayBtn.setPressed(touchPos.x, touchPos.y);
@@ -628,8 +703,13 @@ public class Boxhead implements ApplicationListener {
 					invitePlayersBtn.setPressed(touchPos.x, touchPos.y);
 					showInvitationsBtn.setPressed(touchPos.x, touchPos.y);
 					backBtn.setPressed(touchPos.x,touchPos.y);
-
 				}
+				else if (optionsMenu){
+					options_difficulty.checkPressed(touchPos.x, touchPos.y);
+					options_sound.checkPressed(touchPos.x, touchPos.y);
+					backFromOptionsBtn.setPressed(touchPos.x,touchPos.y);
+				}
+				
 			}else {
 				if (mainMenu){
 					if (singlePlayerBtn.isReleased()){
@@ -638,22 +718,33 @@ public class Boxhead implements ApplicationListener {
 						game = true;
 						start = System.currentTimeMillis();
 						current = System.currentTimeMillis();
+						resetGame();
 						
 					}
 					else if (leaderboardBtn.isReleased() ){
 						leaderboardBtn.setPressed(false);
 						if (signedIn){
 							android.initiateLeaderboard();
-							//onlineMenu = true;
-							//mainMenu = false;	
 						}
 						else {
 							android.initiateSignIn();
 						}
 
 					}
-					else if (instructionsBtn.isReleased()){
-						instructionsBtn.setPressed(false);
+					else if (multiplayerBtn.isReleased()){
+						multiplayerBtn.setPressed(false);
+						if (signedIn){
+							onlineMenu = true;
+							mainMenu = false;	
+						}
+						else {
+							android.initiateSignIn();
+						}
+					}
+					else if (optionsBtn.isReleased()){
+						optionsBtn.setPressed(false);
+						mainMenu = false;
+						optionsMenu = true;
 					}
 //					else if (signIn_OutBtn.isReleased()){
 //						signIn_OutBtn.setPressed(false);
@@ -665,7 +756,9 @@ public class Boxhead implements ApplicationListener {
 				else if (gameOver){
 					if (prefs.getInteger(HIGHSCORE_KEY) < score){
 						prefs.putInteger(HIGHSCORE_KEY, score);
-						android.submitHighscore(score);
+						if (signedIn){
+							android.submitHighscore(score);	
+						}
 						prefs.flush();
 					}
 					if (replayBtn.isReleased()){
@@ -703,6 +796,14 @@ public class Boxhead implements ApplicationListener {
 						mainMenu = true;
 					}
 				}
+				else if (optionsMenu){
+					if (backFromOptionsBtn.isReleased()){
+						backFromOptionsBtn.setPressed(false);
+						mainMenu = true;
+						optionsMenu = false;
+					}
+					
+				}
 
 
 			}
@@ -723,6 +824,7 @@ public class Boxhead implements ApplicationListener {
 
 
 	public void resetGame(){
+		printf("resetGame called");
 		level = 1;
 		score = 0;
 		bullets = new ArrayList<Bullet>();
@@ -738,6 +840,10 @@ public class Boxhead implements ApplicationListener {
 			healthString +="|";
 		}
 
+//		Timer.schedule(new SpawnEnemies(level), 0, ENEMY_SPAWN_DELAY, ENEMIES_PER_LEVEL);
+	}
+	
+	public void spawnEnemies(){
 		Timer.schedule(new SpawnEnemies(level), 0, ENEMY_SPAWN_DELAY, ENEMIES_PER_LEVEL);
 	}
 

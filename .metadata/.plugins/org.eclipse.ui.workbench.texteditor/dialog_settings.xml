@@ -13,20 +13,24 @@
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="false" key="wholeword"/>
-		<item value="platformCode" key="selection"/>
+		<item value="decreaseHealth" key="selection"/>
 		<list key="findhistory">
-			<item value="platformCode"/>
-			<item value="resetGame"/>
+			<item value="decreaseHealth"/>
+			<item value="instruction"/>
 			<item value="instructions"/>
-			<item value="options"/>
-			<item value="optinos"/>
-			<item value="multiplayerBtn"/>
-			<item value="regImg"/>
-			<item value="Timer.sche"/>
+			<item value="intructions"/>
+			<item value="adt"/>
+			<item value="currentTouch"/>
+			<item value="System.curr"/>
+			<item value="System.cur"/>
 		</list>
 		<list key="replacehistory">
 			<item value="instructionsBtn"/>
 			<item value="leaderboardBtn"/>
 		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.GotoLineAction$GotoLineDialog_dialogBounds">
+		<item value="260" key="DIALOG_Y_ORIGIN"/>
+		<item value="447" key="DIALOG_X_ORIGIN"/>
 	</section>
 </section>

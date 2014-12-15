@@ -28,11 +28,11 @@ public class Button {
 	public static Texture NAVY_BLUE = new Texture(Gdx.files.internal("colors/navy_blue.png"));
 	public static Texture GREY = new Texture(Gdx.files.internal("colors/grey.png"));
 	public static Texture GREEN = new Texture(Gdx.files.internal("colors/green.png"));
+	public static Texture LIGHT_PURPLE = new Texture(Gdx.files.internal("colors/light_purple.png"));
 
-	
-	
-	public static float BUTTON_WIDTH = 684;
-	public static float BUTTON_HEIGHT = 131;
+		
+	public static float BUTTON_WIDTH = 625;
+	public static float BUTTON_HEIGHT = 130;
 	
 	private boolean pressed;
 	private boolean hasBeenSet;
@@ -40,6 +40,8 @@ public class Button {
 	private String text;
 	private Texture color;
 	private float fx, fy;
+	private Texture image;
+	private boolean hasImage;
 	
 	static Texture touchImg = new Texture(Gdx.files.internal("sprites/buttonTouch.png"));
 	
@@ -55,11 +57,12 @@ public class Button {
 		
 		this.text = text;
 		this.color = color;
-		
+		this.hasImage = false;
 		this.fx = this.touch.x + this.touch.width/2 - font.getBounds(this.text).width/2;
 	    this.fy = (this.touch.y + this.touch.height/2 + font.getBounds(this.text).height/2) -20;
+
 	}
-	
+
 	public void setPressed (float x, float y){
 		pressed = this.touch.contains(x, y);
 		hasBeenSet = true;
@@ -76,10 +79,15 @@ public class Button {
 	public void drawButton (SpriteBatch batch){
 		 
 		if (this.isPressed()){
-			batch.draw(touchImg, touch.x, touch.y, BUTTON_WIDTH, BUTTON_HEIGHT);	
+			batch.draw(touchImg, touch.x, touch.y, touch.width, touch.height);	
 		}
-		batch.draw(this.color, touch.x,touch.y, BUTTON_WIDTH, BUTTON_HEIGHT);
-		font.draw(batch, this.text, this.fx, this.fy);
+		batch.draw(this.color, touch.x,touch.y, touch.width, touch.height);
+		if (!this.hasImage){
+			font.draw(batch, this.text, this.fx, this.fy);	
+		}else {
+			batch.draw(this.image, this.fx, this.fy, this.image.getWidth(), this.image.getHeight(), 
+					(int)this.fx, (int)this.fy, this.image.getWidth(), this.image.getHeight(), false, true);
+		}
 		
 		
 	}

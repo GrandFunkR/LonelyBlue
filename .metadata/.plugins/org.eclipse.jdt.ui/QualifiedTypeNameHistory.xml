@@ -26,7 +26,6 @@
 <fullyQualifiedTypeName name="com.cloudcomic.R.id"/>
 <fullyQualifiedTypeName name="android.widget.ImageView"/>
 <fullyQualifiedTypeName name="java.io.ByteArrayOutputStream"/>
-<fullyQualifiedTypeName name="java.util.ArrayList"/>
 <fullyQualifiedTypeName name="android.os.Bundle"/>
 <fullyQualifiedTypeName name="android.view.View"/>
 <fullyQualifiedTypeName name="android.view.ViewGroup"/>
@@ -46,7 +45,6 @@
 <fullyQualifiedTypeName name="com.badlogic.gdx.audio.Sound"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.audio.Music"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g2d.TextureRegion"/>
-<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g2d.SpriteBatch"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g2d.Animation"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.Net.HttpRequest"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.Net.HttpResponseListener"/>
@@ -55,7 +53,11 @@
 <fullyQualifiedTypeName name="org.json.JSONException"/>
 <fullyQualifiedTypeName name="org.json.JSONObject"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.utils.Timer.Task"/>
+<fullyQualifiedTypeName name="com.roadhouse.boxheadonline.Button"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.math.Circle"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.scenes.scene2d.ui.Button"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g2d.SpriteBatch"/>
+<fullyQualifiedTypeName name="java.util.ArrayList"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.glutils.ShapeRenderer"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType"/>
-<fullyQualifiedTypeName name="com.roadhouse.boxheadonline.Button"/>
 </qualifiedTypeNameHistroy>
